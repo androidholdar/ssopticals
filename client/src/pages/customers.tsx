@@ -117,8 +117,18 @@ export default function CustomersPage() {
               <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
               <Input 
                 className="pl-9"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+                placeholder="10 digit number"
                 value={newCustomer.mobile} 
-                onChange={e => setNewCustomer({ ...newCustomer, mobile: e.target.value })} 
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (val.length <= 10) {
+                    setNewCustomer({ ...newCustomer, mobile: val });
+                  }
+                }} 
               />
             </div>
           </div>

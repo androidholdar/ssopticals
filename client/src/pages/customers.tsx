@@ -70,6 +70,13 @@ export default function CustomersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (newCustomer.mobile && newCustomer.mobile.length !== 10) {
+        return toast({ 
+          title: "Invalid Mobile Number", 
+          description: "Mobile number must be exactly 10 digits.", 
+          variant: "destructive" 
+        });
+      }
       await createMutation.mutateAsync({
         ...newCustomer,
         age: newCustomer.age ? parseInt(newCustomer.age) : undefined,

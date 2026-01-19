@@ -1,0 +1,349 @@
+import { useState, useRef } from "react";
+import { useCustomers, useCreateCustomer, useUploadPhoto } from "@/hooks/use-customers";
+import { usePresets } from "@/hooks/use-presets";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, MapPin, Phone, Eye } from "lucide-react";
+import { format, isToday, isYesterday } from "date-fns";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+type GroupedCustomers = {
+  today: any[];
+  yesterday: any[];
+  older: any[];
+};
+
+export default function CustomersPage() {
+  const [search, setSearch] = useState("");
+  const { data: customers = [], isLoading } = useCustomers({ search });
+  const { data: presets = [] } = usePresets();
+  const createMutation = useCreateCustomer();
+  const uploadMutation = useUploadPhoto();
+  const { toast } = useToast();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState<any>({
+    name: "",
+    date: format(new Date(), 'yyyy-MM-dd'),
+    mobile: "",
+    address: "",
+    age: "",
+    lensPowerCurrent: "",
+    lensPowerPrevious: "",
+    notes: "",
+    prescriptionPhotoPath: ""
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Determine active preset fields
+  const activePreset = presets.find(p => p.isActive) || presets[0];
+  const fields = activePreset?.fields?.filter(f => f.isEnabled).sort((a, b) => a.orderIndex - b.orderIndex) || [];
+
+  // Group customers
+  const grouped = customers.reduce((acc: GroupedCustomers, customer) => {
+    const date = new Date(customer.date);
+    if (isToday(date)) acc.today.push(customer);
+    else if (isYesterday(date)) acc.yesterday.push(customer);
+    else acc.older.push(customer);
+    return acc;
+  }, { today: [], yesterday: [], older: [] });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { url } = await uploadMutation.mutateAsync(file);
+      setNewCustomer(prev => ({ ...prev, prescriptionPhotoPath: url }));
+      toast({ title: "Photo Uploaded", description: "Prescription attached successfully." });
+    } catch (error) {
+      toast({ title: "Upload Failed", variant: "destructive" });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createMutation.mutateAsync({
+        ...newCustomer,
+        age: newCustomer.age ? parseInt(newCustomer.age) : undefined,
+      });
+      setIsDialogOpen(false);
+      setNewCustomer({
+        name: "",
+        date: format(new Date(), 'yyyy-MM-dd'),
+        mobile: "",
+        address: "",
+        age: "",
+        lensPowerCurrent: "",
+        lensPowerPrevious: "",
+        notes: "",
+        prescriptionPhotoPath: ""
+      });
+      toast({ title: "Success", description: "Customer record created." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to create customer.", variant: "destructive" });
+    }
+  };
+
+  const renderField = (key: string, label: string) => {
+    switch(key) {
+      case 'name':
+        return (
+          <div className="space-y-2 col-span-2">
+            <Label>{label}</Label>
+            <div className="relative">
+              <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input 
+                className="pl-9"
+                value={newCustomer.name} 
+                onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                required 
+              />
+            </div>
+          </div>
+        );
+      case 'mobile':
+        return (
+          <div className="space-y-2">
+            <Label>{label}</Label>
+            <div className="relative">
+              <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input 
+                className="pl-9"
+                value={newCustomer.mobile} 
+                onChange={e => setNewCustomer({ ...newCustomer, mobile: e.target.value })} 
+              />
+            </div>
+          </div>
+        );
+      case 'address':
+        return (
+          <div className="space-y-2 col-span-2">
+            <Label>{label}</Label>
+            <div className="relative">
+              <MapPin className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input 
+                className="pl-9"
+                value={newCustomer.address} 
+                onChange={e => setNewCustomer({ ...newCustomer, address: e.target.value })} 
+              />
+            </div>
+          </div>
+        );
+      case 'age':
+        return (
+          <div className="space-y-2">
+            <Label>{label}</Label>
+            <Input 
+              type="number"
+              value={newCustomer.age} 
+              onChange={e => setNewCustomer({ ...newCustomer, age: e.target.value })} 
+            />
+          </div>
+        );
+      case 'lens_power': // This maps to lensPowerCurrent in DB logic usually
+        return (
+          <div className="space-y-2">
+            <Label>{label}</Label>
+            <div className="relative">
+              <Eye className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input 
+                className="pl-9"
+                placeholder="R / L"
+                value={newCustomer.lensPowerCurrent} 
+                onChange={e => setNewCustomer({ ...newCustomer, lensPowerCurrent: e.target.value })} 
+              />
+            </div>
+          </div>
+        );
+       case 'notes':
+        return (
+          <div className="space-y-2 col-span-2">
+            <Label>{label}</Label>
+            <Textarea 
+              value={newCustomer.notes} 
+              onChange={e => setNewCustomer({ ...newCustomer, notes: e.target.value })} 
+            />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6 pb-20 md:pb-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold">Customers</h1>
+          <p className="text-muted-foreground">Manage customer records and prescriptions.</p>
+        </div>
+        <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
+          <Plus className="w-4 h-4 mr-2" /> New Customer
+        </Button>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+        <Input 
+          className="pl-9 h-12 rounded-xl border-muted-foreground/20" 
+          placeholder="Search by name or mobile..." 
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-8">
+        {grouped.today.length > 0 && (
+          <section>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Today</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {grouped.today.map(c => <CustomerCard key={c.id} customer={c} />)}
+            </div>
+          </section>
+        )}
+
+        {grouped.yesterday.length > 0 && (
+          <section>
+             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Yesterday</h3>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {grouped.yesterday.map(c => <CustomerCard key={c.id} customer={c} />)}
+            </div>
+          </section>
+        )}
+
+        {grouped.older.length > 0 && (
+          <section>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Older</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {grouped.older.map(c => <CustomerCard key={c.id} customer={c} />)}
+            </div>
+          </section>
+        )}
+
+        {customers.length === 0 && (
+          <div className="text-center py-20 text-muted-foreground">
+            <Users className="w-16 h-16 mx-auto mb-4 opacity-20" />
+            <p className="text-lg">No customers found</p>
+          </div>
+        )}
+      </div>
+
+      {/* New Customer Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New Customer Record</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Always show Date */}
+              <div className="space-y-2 col-span-2 sm:col-span-1">
+                <Label>Date</Label>
+                <div className="relative">
+                  <CalendarIcon className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                  <Input 
+                    type="date"
+                    className="pl-9"
+                    value={newCustomer.date}
+                    onChange={e => setNewCustomer({ ...newCustomer, date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Fields from Preset */}
+              {fields.map(field => (
+                <div key={field.id} className={cn(
+                  field.fieldKey === 'name' || field.fieldKey === 'address' || field.fieldKey === 'notes' ? "col-span-2" : "col-span-2 sm:col-span-1"
+                )}>
+                  {renderField(field.fieldKey, field.label)}
+                </div>
+              ))}
+              
+              {/* Photo Upload */}
+              <div className="col-span-2 space-y-2">
+                <Label>Prescription Photo</Label>
+                <div className="flex items-center gap-4">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    {newCustomer.prescriptionPhotoPath ? (
+                      <img 
+                        src={newCustomer.prescriptionPhotoPath} 
+                        alt="Prescription" 
+                        className="max-h-32 object-contain rounded-md" 
+                      />
+                    ) : (
+                      <>
+                        <Camera className="w-8 h-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Click to upload or take photo</span>
+                      </>
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending || uploadMutation.isPending}>
+                {createMutation.isPending ? "Creating..." : "Create Record"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function CustomerCard({ customer }: { customer: any }) {
+  return (
+    <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{customer.name}</h3>
+            <p className="text-xs text-muted-foreground">{format(new Date(customer.date), 'MMM d, yyyy')}</p>
+          </div>
+          {customer.lensPowerCurrent && (
+            <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">
+              {customer.lensPowerCurrent}
+            </span>
+          )}
+        </div>
+        
+        <div className="space-y-1 text-sm text-muted-foreground">
+          {customer.mobile && (
+            <div className="flex items-center gap-2">
+              <Phone className="w-3.5 h-3.5" />
+              {customer.mobile}
+            </div>
+          )}
+          {customer.address && (
+            <div className="flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5" />
+              <span className="truncate">{customer.address}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

@@ -23,6 +23,7 @@ export interface IStorage {
   getSettings(): Promise<Settings | undefined>;
   createSettings(passwordHash: string): Promise<Settings>;
   updateSettings(passwordHash: string): Promise<Settings>;
+  deleteSettings(): Promise<void>;
 
   // Categories
   getCategories(): Promise<Category[]>;
@@ -71,6 +72,10 @@ export class DatabaseStorage implements IStorage {
     } else {
       return this.createSettings(passwordHash);
     }
+  }
+
+  async deleteSettings(): Promise<void> {
+    await db.delete(settings);
   }
 
   // Categories

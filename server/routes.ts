@@ -83,6 +83,11 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.post("/api/settings/reset", async (req, res) => {
+    await storage.deleteSettings();
+    res.json({ success: true });
+  });
+
   // Categories
   app.get(api.categories.list.path, async (req, res) => {
     const categories = await storage.getCategories();

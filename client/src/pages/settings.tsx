@@ -47,6 +47,20 @@ export default function SettingsPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!confirm("Are you sure you want to reset the wholesale password? This will remove password protection from wholesale prices until a new one is set.")) {
+      return;
+    }
+
+    try {
+      await apiRequest("POST", "/api/settings/reset", {});
+      toast({ title: "Password Reset", description: "Wholesale password has been cleared." });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handleBackup = () => {
     window.location.href = "/api/backup";
   };
@@ -148,9 +162,22 @@ export default function SettingsPage() {
                   />
                 </div>
 
-                <Button type="submit" disabled={setupPassword.isPending || changePassword.isPending}>
-                  {setupPassword.isPending || changePassword.isPending ? "Saving..." : "Save Password"}
-                </Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button type="submit" disabled={setupPassword.isPending || changePassword.isPending}>
+                    {setupPassword.isPending || changePassword.isPending ? "Saving..." : "Save Password"}
+                  </Button>
+                  
+                  {settings?.hasPassword && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="text-destructive hover:text-destructive"
+                      onClick={handleResetPassword}
+                    >
+                      Reset Password
+                    </Button>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>

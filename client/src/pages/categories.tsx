@@ -212,7 +212,8 @@ export default function CategoriesPage() {
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
                           <span>Retail: <span className="font-bold text-foreground">${node.customerPrice}</span></span>
                           {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ${node.wholesalePrice}</span>}
-                          {node.fromPower && <span>{node.fromPower} to {node.toPower}</span>}
+                          {node.sph && <span>SPH: {node.sph}</span>}
+                          {node.cyl && <span>CYL: {node.cyl}</span>}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Category</span>
@@ -302,19 +303,19 @@ export default function CategoriesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Power From</Label>
+                    <Label>SPH</Label>
                     <Input 
-                      type="number" step="0.25"
-                      value={editingNode?.fromPower || ''} 
-                      onChange={e => setEditingNode(prev => ({ ...prev, fromPower: parseFloat(e.target.value) }))}
+                      placeholder="e.g. -2.00 to +2.00"
+                      value={editingNode?.sph || ''} 
+                      onChange={e => setEditingNode(prev => ({ ...prev, sph: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Power To</Label>
+                    <Label>CYL</Label>
                     <Input 
-                      type="number" step="0.25"
-                      value={editingNode?.toPower || ''} 
-                      onChange={e => setEditingNode(prev => ({ ...prev, toPower: parseFloat(e.target.value) }))}
+                      placeholder="e.g. up to -2.00"
+                      value={editingNode?.cyl || ''} 
+                      onChange={e => setEditingNode(prev => ({ ...prev, cyl: e.target.value }))}
                     />
                   </div>
                 </div>

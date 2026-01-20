@@ -235,9 +235,14 @@ export default function Dashboard() {
                               Wholesale: ${node.wholesalePrice}
                             </span>
                           )}
-                          {node.fromPower && (
+                          {node.sph && (
                             <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-md self-center">
-                              {node.fromPower} to {node.toPower}
+                              SPH: {node.sph}
+                            </span>
+                          )}
+                          {node.cyl && (
+                            <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-md self-center">
+                              CYL: {node.cyl}
                             </span>
                           )}
                         </div>

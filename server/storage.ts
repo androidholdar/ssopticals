@@ -45,6 +45,7 @@ export interface IStorage {
   createPreset(name: string): Promise<FormPreset>;
   updatePresetField(id: number, updates: Partial<FormPresetField>): Promise<void>;
   activatePreset(id: number): Promise<void>;
+  restoreBackup(data: any): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -217,6 +218,84 @@ export class DatabaseStorage implements IStorage {
   async activatePreset(id: number): Promise<void> {
     await db.update(formPresets).set({ isActive: false }); // Deactivate all
     await db.update(formPresets).set({ isActive: true }).where(eq(formPresets.id, id));
+  }
+
+  async restoreBackup(data: any): Promise<void> {
+    await db.transaction(async (tx) => {
+      // Clear existing data (order matters for foreign keys)
+      await tx.delete(formPresetFields);
+      await tx.delete(formPresets);
+      await tx.delete(customers);
+      await tx.delete(categories);
+      await tx.delete(settings);
+
+      // Restore Settings
+      if (data.settings) {
+        await tx.insert(settings).values({
+          wholesalePasswordHash: data.settings.wholesalePasswordHash
+        });
+      }
+
+      // Restore Categories (preserve IDs to keep parent-child relations)
+      if (data.categories) {
+        for (const cat of data.categories) {
+          await tx.insert(categories).values({
+            id: cat.id,
+            parentId: cat.parentId,
+            name: cat.name,
+            type: cat.type,
+            customerPrice: cat.customerPrice,
+            wholesalePrice: cat.wholesalePrice,
+            sph: cat.sph,
+            cyl: cat.cyl,
+            sortOrder: cat.sortOrder,
+            updatedAt: new Date(cat.updatedAt)
+          });
+        }
+      }
+
+      // Restore Customers
+      if (data.customers) {
+        for (const cust of data.customers) {
+          await tx.insert(customers).values({
+            id: cust.id,
+            date: cust.date,
+            name: cust.name,
+            age: cust.age,
+            address: cust.address,
+            mobile: cust.mobile,
+            lensPowerCurrent: cust.lensPowerCurrent,
+            lensPowerPrevious: cust.lensPowerPrevious,
+            notes: cust.notes,
+            prescriptionPhotoPath: cust.prescriptionPhotoPath,
+            createdAt: new Date(cust.createdAt)
+          });
+        }
+      }
+
+      // Restore Presets and Fields
+      if (data.presets) {
+        for (const preset of data.presets) {
+          await tx.insert(formPresets).values({
+            id: preset.id,
+            name: preset.name,
+            isActive: preset.isActive
+          });
+          if (preset.fields) {
+            for (const field of preset.fields) {
+              await tx.insert(formPresetFields).values({
+                id: field.id,
+                presetId: field.presetId,
+                fieldKey: field.fieldKey,
+                label: field.label,
+                isEnabled: field.isEnabled,
+                orderIndex: field.orderIndex
+              });
+            }
+          }
+        }
+      }
+    });
   }
 }
 

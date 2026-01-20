@@ -196,6 +196,48 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // Backup and Restore
+  app.get("/api/backup", async (req, res) => {
+    try {
+      const data = {
+        categories: await storage.getCategories(),
+        customers: await storage.getCustomers(),
+        presets: await storage.getPresets(),
+        settings: await storage.getSettings(),
+        version: "1.0",
+        timestamp: new Date().toISOString()
+      };
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename=optician_backup.json');
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to create backup" });
+    }
+  });
+
+  app.post("/api/restore", upload.single("backup"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No backup file uploaded" });
+      const rawData = fs.readFileSync(req.file.path, 'utf8');
+      const data = JSON.parse(rawData);
+
+      // Simple validation
+      if (!data.categories || !data.customers) {
+        return res.status(400).json({ message: "Invalid backup file format" });
+      }
+
+      // Restore logic - we'll need a way to clear and insert
+      // For simplicity in this fast mode, we'll suggest using a more robust method
+      // but let's implement a basic version that replaces data
+      await storage.restoreBackup(data);
+      
+      fs.unlinkSync(req.file.path);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Restore failed: " + (err as Error).message });
+    }
+  });
+
   // Seed the database on startup
   seedDatabase().catch(console.error);
 

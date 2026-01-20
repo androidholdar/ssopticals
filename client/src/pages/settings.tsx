@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, ShieldCheck, FormInput } from "lucide-react";
+import { Lock, ShieldCheck, FormInput, Download, Upload, Database } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function SettingsPage() {
   const { data: settings } = useSettings();
   const setupPassword = useSetupPassword();
   const changePassword = useChangePassword();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Password State
   const [newPassword, setNewPassword] = useState("");
@@ -44,6 +47,44 @@ export default function SettingsPage() {
     }
   };
 
+  const handleBackup = () => {
+    window.location.href = "/api/backup";
+  };
+
+  const handleRestoreClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("backup", file);
+
+    setIsRestoring(true);
+    try {
+      const response = await fetch("/api/restore", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        toast({ title: "Restore Successful", description: "Application data has been restored." });
+        // Invalidate all queries to refresh the app data
+        queryClient.invalidateQueries();
+      } else {
+        const err = await response.json();
+        throw new Error(err.message || "Restore failed");
+      }
+    } catch (error: any) {
+      toast({ title: "Restore Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsRestoring(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       <div>
@@ -52,8 +93,9 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="security" className="w-full">
-        <TabsList className="w-full md:w-auto grid grid-cols-2">
+        <TabsList className="w-full md:w-auto grid grid-cols-3">
           <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="data">Backup & Restore</TabsTrigger>
           <TabsTrigger value="presets">Form Presets</TabsTrigger>
         </TabsList>
         
@@ -110,6 +152,48 @@ export default function SettingsPage() {
                   {setupPassword.isPending || changePassword.isPending ? "Saving..." : "Save Password"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="data" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Database className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Backup & Restore</CardTitle>
+                  <CardDescription>Export your data as a backup file or restore from a previous one.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col gap-4 max-w-md">
+                <div className="space-y-2">
+                  <h3 className="font-medium text-sm">Backup</h3>
+                  <p className="text-xs text-muted-foreground">Download a JSON file containing all your lens categories, prices, and customer records.</p>
+                  <Button onClick={handleBackup} className="w-full sm:w-auto">
+                    <Download className="w-4 h-4 mr-2" /> Download Backup
+                  </Button>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <h3 className="font-medium text-sm">Restore</h3>
+                  <p className="text-xs text-muted-foreground">Upload a previously saved backup file. <strong>Warning: This will overwrite all current data.</strong></p>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept=".json" 
+                    onChange={handleFileChange}
+                  />
+                  <Button variant="outline" onClick={handleRestoreClick} className="w-full sm:w-auto" disabled={isRestoring}>
+                    <Upload className="w-4 h-4 mr-2" /> {isRestoring ? "Restoring..." : "Restore from File"}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

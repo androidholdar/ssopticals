@@ -250,14 +250,19 @@ export default function CategoriesPage() {
                       </div>
                     )}
                     
-                    <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+                    <div className="flex flex-col min-w-0 flex-1 overflow-hidden pr-2">
                       <div className="marquee-container">
                         <span className={cn(
                           "font-semibold text-base inline-block",
-                          node.name.length > 20 ? "animate-marquee" : "truncate w-full"
+                          node.name.length > 15 ? "animate-marquee" : "truncate w-full"
                         )}>
                           {node.name}
                         </span>
+                        {node.name.length > 15 && (
+                          <span className="font-semibold text-base animate-marquee">
+                            {node.name}
+                          </span>
+                        )}
                       </div>
                       {node.type === 'ITEM' ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">

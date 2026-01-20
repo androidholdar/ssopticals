@@ -223,8 +223,15 @@ export default function Dashboard() {
                       </div>
                     )}
                     
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-base truncate">{node.name}</span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="marquee-container">
+                        <span className={cn(
+                          "font-semibold text-base",
+                          node.name.length > 25 ? "animate-marquee" : "truncate block"
+                        )}>
+                          {node.name}
+                        </span>
+                      </div>
                       {node.type === 'ITEM' ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                           <span className="text-sm">

@@ -37,6 +37,28 @@
   --card-foreground: 224 71% 4%;
 }
 
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 10s linear infinite;
+  padding-right: 2rem;
+}
+
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.marquee-container:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;

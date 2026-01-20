@@ -1,9 +1,22 @@
+import { useState, useEffect } from "react";
+import { 
+  Plus, 
+  Folder, 
+  FolderOpen, 
+  FileText, 
+  Search, 
+  Lock, 
+  Unlock, 
+  Box, 
+  ChevronRight,
+  ChevronLeft,
+  DollarSign
+} from "lucide-react";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { useWholesale } from "@/hooks/use-wholesale";
 import { type Category } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Folder, FolderOpen, FileText, Plus, Pencil, Trash2, ChevronRight, ChevronDown, DollarSign, Box, Search, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -22,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { useVerifyPassword } from "@/hooks/use-settings";
 
 type CategoryNode = Category & { children: CategoryNode[] };
@@ -58,76 +70,6 @@ function buildTree(items: Category[]): CategoryNode[] {
   return roots;
 }
 
-const CategoryItem = ({ 
-  node, 
-  level = 0 
-}: { 
-  node: CategoryNode, 
-  level?: number 
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { isUnlocked } = useWholesale();
-  
-  const hasChildren = node.children.length > 0;
-  const isFolder = node.type === 'FOLDER';
-
-  return (
-    <div className="select-none">
-      <div 
-        className={cn(
-          "group flex items-center justify-between py-2 px-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer",
-          level > 0 && "ml-4 border-l border-border pl-4"
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isFolder) setIsOpen(!isOpen);
-        }}
-      >
-        <div className="flex items-center gap-2 overflow-hidden">
-          {isFolder ? (
-            isOpen ? <FolderOpen className="w-5 h-5 text-primary flex-shrink-0" /> : <Folder className="w-5 h-5 text-primary/70 flex-shrink-0" />
-          ) : (
-            <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-          )}
-          
-          <div className="flex flex-col min-w-0">
-            <span className="font-medium truncate">{node.name}</span>
-            {!isFolder && (
-              <div className="flex gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-0.5">
-                  Retail: <span className="font-semibold text-foreground">${node.customerPrice}</span>
-                </span>
-                {isUnlocked && (
-                  <span className="flex items-center gap-0.5 text-green-600 font-medium bg-green-50 px-1 rounded">
-                    Wholesale: ${node.wholesalePrice}
-                  </span>
-                )}
-                {node.fromPower && (
-                  <span className="text-xs border px-1 rounded bg-background">
-                    {node.fromPower} to {node.toPower}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {isOpen && hasChildren && (
-        <div className="mt-1 space-y-1">
-          {node.children.map(child => (
-            <CategoryItem 
-              key={child.id} 
-              node={child} 
-              level={level + 1} 
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default function Dashboard() {
   const { data: categories = [], isLoading } = useCategories();
   const { isUnlocked, lock, unlock } = useWholesale();
@@ -137,8 +79,36 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [password, setPassword] = useState("");
+  const [currentPath, setCurrentPath] = useState<number[]>([]);
 
-  const tree = buildTree(categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase())));
+  // Get current node and its children
+  const currentId = currentPath[currentPath.length - 1] || null;
+  
+  // Filter categories to show only immediate children of current path
+  const displayCategories = categories.filter(c => {
+    const nameMatches = c.name.toLowerCase().includes(search.toLowerCase());
+    const isChild = c.parentId === currentId;
+    return isChild && nameMatches;
+  }).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  const handleBack = () => {
+    setCurrentPath(prev => prev.slice(0, -1));
+  };
+
+  const handleNavigate = (id: number) => {
+    setCurrentPath(prev => [...prev, id]);
+  };
+
+  // Sync with browser history for back button support
+  useEffect(() => {
+    const handlePopState = () => {
+      if (currentPath.length > 0) {
+        handleBack();
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentPath]);
 
   const handleUnlock = async () => {
     try {
@@ -163,7 +133,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold">Lens Prices</h1>
-          <p className="text-muted-foreground">Browse and view lens retail and wholesale prices.</p>
+          <p className="text-muted-foreground">Browse lens retail and wholesale prices.</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button 
@@ -178,31 +148,108 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-muted/20">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-            <input 
-              className="w-full bg-background border border-input rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              placeholder="Search lens by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="p-4 border-b bg-muted/20 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-1">
+            {currentPath.length > 0 && (
+              <Button variant="ghost" size="icon" onClick={handleBack} className="h-9 w-9">
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+            )}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+              <input 
+                className="w-full bg-background border border-input rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="Search lens by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
+
+        {currentPath.length > 0 && (
+          <div className="px-4 py-2 bg-muted/10 border-b flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="hover:text-primary cursor-pointer" onClick={() => setCurrentPath([])}>Lens</span>
+            {currentPath.map((id, index) => {
+              const cat = categories.find(c => c.id === id);
+              return (
+                <div key={id} className="flex items-center gap-2">
+                  <ChevronRight className="w-3 h-3" />
+                  <span 
+                    className={cn(
+                      "cursor-pointer hover:text-primary",
+                      index === currentPath.length - 1 && "font-medium text-foreground"
+                    )}
+                    onClick={() => setCurrentPath(currentPath.slice(0, index + 1))}
+                  >
+                    {cat?.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
         
         <div className="p-4 min-h-[400px]">
-          {tree.length === 0 ? (
+          {displayCategories.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Box className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p>No lens categories found.</p>
+              <p>No items found in this category.</p>
+              {currentPath.length > 0 && (
+                <Button variant="ghost" onClick={handleBack} className="mt-2">
+                  Go Back
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="space-y-2">
-              {tree.map(node => (
-                <CategoryItem 
-                  key={node.id} 
-                  node={node} 
-                />
+            <div className="grid grid-cols-1 gap-2">
+              {displayCategories.map(node => (
+                <div 
+                  key={node.id}
+                  className={cn(
+                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-border",
+                    node.type === 'ITEM' && "cursor-default"
+                  )}
+                  onClick={() => node.type === 'FOLDER' && handleNavigate(node.id)}
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    {node.type === 'FOLDER' ? (
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Folder className="w-5 h-5" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                    )}
+                    
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-base truncate">{node.name}</span>
+                      {node.type === 'ITEM' ? (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                          <span className="text-sm">
+                            Retail: <span className="font-bold text-primary">${node.customerPrice}</span>
+                          </span>
+                          {isUnlocked && (
+                            <span className="text-sm text-green-600 font-medium bg-green-50 px-2 rounded-full border border-green-100">
+                              Wholesale: ${node.wholesalePrice}
+                            </span>
+                          )}
+                          {node.fromPower && (
+                            <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-md self-center">
+                              {node.fromPower} to {node.toPower}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Category</span>
+                      )}
+                    </div>
+                  </div>
+                  {node.type === 'FOLDER' && (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -236,4 +283,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

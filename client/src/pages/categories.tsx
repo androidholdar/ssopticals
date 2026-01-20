@@ -85,6 +85,11 @@ export default function CategoriesPage() {
     setIsDialogOpen(true);
   };
 
+  const handleAddLensDetail = (parentId: number | null) => {
+    setEditingNode({ type: 'ITEM', parentId, name: '', sortOrder: 0, sph: '', cyl: '' });
+    setIsDialogOpen(true);
+  };
+
   const handleEdit = (category: Category) => {
     setEditingNode(category);
     setIsDialogOpen(true);
@@ -222,6 +227,26 @@ export default function CategoriesPage() {
                   </div>
 
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                    {node.type === 'FOLDER' && (
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 px-2 text-xs"
+                          onClick={(e) => { e.stopPropagation(); handleAdd(node.id); }}
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Sub-category
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 px-2 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                          onClick={(e) => { e.stopPropagation(); handleAddLensDetail(node.id); }}
+                        >
+                          <FileText className="w-3.5 h-3.5 mr-1" /> Lens Detail
+                        </Button>
+                      </>
+                    )}
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
                       <Pencil className="w-4 h-4" />
                     </Button>

@@ -223,16 +223,16 @@ export default function Dashboard() {
                       </div>
                     )}
                     
-                    <div className="flex flex-col min-w-0 flex-1 pr-2 overflow-hidden">
-                      <div className="marquee-container group">
+                    <div className="flex flex-col min-w-0 flex-1 overflow-hidden pr-2">
+                      <div className="marquee-container">
                         <span className={cn(
-                          "font-semibold text-base inline-block whitespace-nowrap",
-                          node.name.length > 30 && "animate-marquee"
+                          "font-semibold text-base",
+                          node.name.length > 20 ? "animate-marquee" : "truncate block w-full"
                         )}>
                           {node.name}
                         </span>
-                        {node.name.length > 30 && (
-                          <span className="font-semibold text-base animate-marquee ml-4">
+                        {node.name.length > 20 && (
+                          <span className="font-semibold text-base animate-marquee">
                             {node.name}
                           </span>
                         )}

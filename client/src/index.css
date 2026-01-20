@@ -46,10 +46,11 @@
   display: inline-block;
   white-space: nowrap;
   animation: marquee 15s linear infinite;
+  padding-right: 2rem;
 }
 
 .marquee-container {
-  display: flex;
+  display: block;
   overflow: hidden;
   white-space: nowrap;
   width: 100%;

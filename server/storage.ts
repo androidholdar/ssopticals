@@ -117,7 +117,7 @@ export class DatabaseStorage implements IStorage {
     const conditions = [];
     if (params?.search) {
       const searchLower = `%${params.search.toLowerCase()}%`;
-      conditions.push(sql`lower(${customers.name}) LIKE ${searchLower} OR ${customers.mobile} LIKE ${searchLower}`);
+      conditions.push(sql`lower(${customers.name}) LIKE ${searchLower} OR ${customers.mobile} LIKE ${searchLower} OR lower(${customers.address}) LIKE ${searchLower}`);
     }
     if (params?.from) {
       conditions.push(gte(customers.date, params.from));

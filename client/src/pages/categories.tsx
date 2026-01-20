@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { useWholesale } from "@/hooks/use-wholesale";
 import { type Category } from "@shared/schema";
@@ -49,6 +49,8 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [currentPath, setCurrentPath] = useState<number[]>([]);
+  const [longPressedId, setLongPressedId] = useState<number | null>(null);
+  const pressTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
@@ -64,10 +66,13 @@ export default function CategoriesPage() {
 
   const handleBack = () => {
     setCurrentPath(prev => prev.slice(0, -1));
+    setLongPressedId(null);
   };
 
   const handleNavigate = (id: number) => {
+    if (longPressedId === id) return; // Don't navigate if showing edit options
     setCurrentPath(prev => [...prev, id]);
+    setLongPressedId(null);
   };
 
   useEffect(() => {
@@ -88,10 +93,25 @@ export default function CategoriesPage() {
   const handleEdit = (category: Category) => {
     setEditingNode(category);
     setIsDialogOpen(true);
+    setLongPressedId(null);
   };
 
   const handleDelete = (id: number) => {
     setDeleteId(id);
+    setLongPressedId(null);
+  };
+
+  const handlePressStart = (id: number) => {
+    pressTimer.current = setTimeout(() => {
+      setLongPressedId(id);
+      window.navigator.vibrate?.(50);
+    }, 500);
+  };
+
+  const handlePressEnd = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+    }
   };
 
   const confirmDelete = async () => {
@@ -124,7 +144,7 @@ export default function CategoriesPage() {
   if (isLoading) return <div className="p-8 text-center">Loading lens...</div>;
 
   return (
-    <div className="space-y-6 pb-20 md:pb-0">
+    <div className="space-y-6 pb-20 md:pb-0" onClick={() => setLongPressedId(null)}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold">Lens</h1>
@@ -190,10 +210,20 @@ export default function CategoriesPage() {
                 <div 
                   key={node.id}
                   className={cn(
-                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent hover:border-border",
-                    node.type === 'FOLDER' && "cursor-pointer"
+                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent",
+                    node.type === 'FOLDER' && "cursor-pointer",
+                    longPressedId === node.id ? "bg-primary/5 border-primary/20 scale-[0.98]" : "hover:border-border"
                   )}
-                  onClick={() => node.type === 'FOLDER' && handleNavigate(node.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (longPressedId === node.id) return;
+                    if (node.type === 'FOLDER') handleNavigate(node.id);
+                  }}
+                  onMouseDown={() => handlePressStart(node.id)}
+                  onMouseUp={handlePressEnd}
+                  onMouseLeave={handlePressEnd}
+                  onTouchStart={() => handlePressStart(node.id)}
+                  onTouchEnd={handlePressEnd}
                 >
                   <div className="flex items-center gap-3 overflow-hidden flex-1">
                     {node.type === 'FOLDER' ? (
@@ -221,17 +251,21 @@ export default function CategoriesPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
+                  <div className={cn(
+                    "flex items-center gap-1 transition-all ml-4",
+                    longPressedId === node.id ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
+                  )}>
+                    <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
+                    <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
-                    {node.type === 'FOLDER' && (
-                      <ChevronRight className="w-5 h-5 text-muted-foreground/50 ml-1" />
-                    )}
                   </div>
+                  
+                  {node.type === 'FOLDER' && longPressedId !== node.id && (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground/50 ml-1" />
+                  )}
                 </div>
               ))}
             </div>

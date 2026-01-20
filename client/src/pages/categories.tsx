@@ -217,7 +217,7 @@ export default function CategoriesPage() {
     <div className="space-y-6 pb-20 md:pb-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold">Inventory</h1>
+          <h1 className="text-3xl font-display font-bold">Lens</h1>
           <p className="text-muted-foreground">Manage lens categories and pricing.</p>
         </div>
         <Button onClick={() => handleAdd(null)} className="shadow-lg shadow-primary/20">

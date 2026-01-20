@@ -42,7 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/customers", label: "Customers", icon: Users },
-    { href: "/categories", label: "Categories", icon: Box },
+    { href: "/categories", label: "Lens", icon: Box },
     { href: "/settings", label: "Settings", icon: SettingsIcon },
   ];
 

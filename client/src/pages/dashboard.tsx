@@ -46,7 +46,7 @@ export default function Dashboard() {
 
         <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Categories</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Lens</CardTitle>
             <Box className="w-4 h-4 text-purple-500" />
           </CardHeader>
           <CardContent>
@@ -88,7 +88,7 @@ export default function Dashboard() {
                   <Box className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-semibold">Manage Inventory</div>
+                  <div className="font-semibold">Lens</div>
                   <div className="text-sm text-muted-foreground">Update prices and categories</div>
                 </div>
               </div>

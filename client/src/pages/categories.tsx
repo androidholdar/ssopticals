@@ -118,7 +118,6 @@ export default function CategoriesPage() {
     if (deleteId) {
       await deleteMutation.mutateAsync(deleteId);
       setDeleteId(null);
-      toast({ title: "Deleted", description: "Category removed successfully." });
     }
   };
 
@@ -129,10 +128,8 @@ export default function CategoriesPage() {
     try {
       if ('id' in editingNode && editingNode.id) {
         await updateMutation.mutateAsync({ id: editingNode.id, ...editingNode });
-        toast({ title: "Updated", description: "Category updated successfully." });
       } else {
         await createMutation.mutateAsync(editingNode as any);
-        toast({ title: "Created", description: "Category created successfully." });
       }
       setIsDialogOpen(false);
       setEditingNode(null);

@@ -1,145 +1,427 @@
-import { useCategories } from "@/hooks/use-categories";
-import { useCustomers } from "@/hooks/use-customers";
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { useWholesale } from "@/hooks/use-wholesale";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { type Category } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Box, ArrowRight, Activity, TrendingUp } from "lucide-react";
-import { Link } from "wouter";
-import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Folder, FolderOpen, FileText, Plus, Pencil, Trash2, ChevronRight, ChevronDown, DollarSign, Box, Search, Lock, Unlock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useVerifyPassword } from "@/hooks/use-settings";
 
-export default function Dashboard() {
-  const { data: categories } = useCategories();
-  const { data: customers } = useCustomers({ 
-    from: format(new Date(), 'yyyy-MM-dd') 
+type CategoryNode = Category & { children: CategoryNode[] };
+
+function buildTree(items: Category[]): CategoryNode[] {
+  const map = new Map<number, CategoryNode>();
+  const roots: CategoryNode[] = [];
+
+  items.forEach(item => {
+    map.set(item.id, { ...item, children: [] });
   });
-  const { isUnlocked } = useWholesale();
 
-  const totalCategories = categories?.length || 0;
-  const recentCustomers = customers?.length || 0;
+  items.forEach(item => {
+    const node = map.get(item.id)!;
+    if (item.parentId && map.has(item.parentId)) {
+      map.get(item.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  const sortFn = (a: CategoryNode, b: CategoryNode) => {
+    if (a.type !== b.type) return a.type === 'FOLDER' ? -1 : 1;
+    return (a.sortOrder || 0) - (b.sortOrder || 0);
+  };
+
+  const sortRecursive = (nodes: CategoryNode[]) => {
+    nodes.sort(sortFn);
+    nodes.forEach(node => sortRecursive(node.children));
+  };
+
+  sortRecursive(roots);
+  return roots;
+}
+
+const CategoryItem = ({ 
+  node, 
+  onAdd, 
+  onEdit, 
+  onDelete, 
+  level = 0 
+}: { 
+  node: CategoryNode, 
+  onAdd: (id: number) => void, 
+  onEdit: (node: Category) => void, 
+  onDelete: (id: number) => void, 
+  level?: number 
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { isUnlocked } = useWholesale();
+  
+  const hasChildren = node.children.length > 0;
+  const isFolder = node.type === 'FOLDER';
 
   return (
-    <div className="space-y-8 pb-20 md:pb-0">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back to OptiFlow Manager.</p>
-        </div>
-        <Link href="/customers">
-          <Button className="gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all">
-            <Plus className="w-4 h-4" /> New Customer
-          </Button>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Stats Cards */}
-        <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Today's Customers</CardTitle>
-            <Users className="w-4 h-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{recentCustomers}</div>
-            <p className="text-xs text-muted-foreground mt-1">+ from yesterday</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Lens</CardTitle>
-            <Box className="w-4 h-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCategories}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active items & folders</p>
-          </CardContent>
-        </Card>
-
-        <Card className={isUnlocked 
-          ? "hover:shadow-lg transition-all border-l-4 border-l-green-500 bg-green-50/50"
-          : "hover:shadow-lg transition-all border-l-4 border-l-gray-400"
-        }>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Mode Status</CardTitle>
-            <Activity className={isUnlocked ? "w-4 h-4 text-green-600" : "w-4 h-4 text-gray-400"} />
-          </CardHeader>
-          <CardContent>
-            <div className={isUnlocked ? "text-2xl font-bold text-green-700" : "text-2xl font-bold text-gray-600"}>
-              {isUnlocked ? "Wholesale" : "Retail Only"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {isUnlocked ? "Wholesale prices visible" : "Prices hidden"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Quick Actions */}
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle>Quick Access</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <Link href="/categories" className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors group">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-200 transition-colors">
-                  <Box className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-semibold">Lens</div>
-                  <div className="text-sm text-muted-foreground">Update prices and categories</div>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </Link>
-
-            <Link href="/settings" className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors group">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-200 transition-colors">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-semibold">Configure Presets</div>
-                  <div className="text-sm text-muted-foreground">Customize customer forms</div>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle>Recent Customers</CardTitle>
-            <CardDescription>Latest additions today</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {customers && customers.length > 0 ? (
-              <div className="space-y-4">
-                {customers.slice(0, 5).map(customer => (
-                  <div key={customer.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                    <div>
-                      <div className="font-medium">{customer.name}</div>
-                      <div className="text-xs text-muted-foreground">{customer.mobile || "No mobile"}</div>
-                    </div>
-                    <div className="text-xs font-medium bg-secondary px-2 py-1 rounded-md">
-                      {customer.lensPowerCurrent || "N/A"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <Users className="w-10 h-10 mb-2 opacity-20" />
-                <p>No customers added today</p>
+    <div className="select-none">
+      <div 
+        className={cn(
+          "group flex items-center justify-between py-2 px-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer",
+          level > 0 && "ml-4 border-l border-border pl-4"
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isFolder) setIsOpen(!isOpen);
+        }}
+      >
+        <div className="flex items-center gap-2 overflow-hidden">
+          {isFolder ? (
+            isOpen ? <FolderOpen className="w-5 h-5 text-primary flex-shrink-0" /> : <Folder className="w-5 h-5 text-primary/70 flex-shrink-0" />
+          ) : (
+            <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          )}
+          
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium truncate">{node.name}</span>
+            {!isFolder && (
+              <div className="flex gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-0.5">
+                  Retail: <span className="font-semibold text-foreground">${node.customerPrice}</span>
+                </span>
+                {isUnlocked && (
+                  <span className="flex items-center gap-0.5 text-green-600 font-medium bg-green-50 px-1 rounded">
+                    Wholesale: ${node.wholesalePrice}
+                  </span>
+                )}
+                {node.fromPower && (
+                  <span className="text-xs border px-1 rounded bg-background">
+                    {node.fromPower} to {node.toPower}
+                  </span>
+                )}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {isFolder && (
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAdd(node.id); }}>
+              <Plus className="w-4 h-4" />
+            </Button>
+          )}
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(node); }}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
+
+      {isOpen && hasChildren && (
+        <div className="mt-1 space-y-1">
+          {node.children.map(child => (
+            <CategoryItem 
+              key={child.id} 
+              node={child} 
+              onAdd={onAdd}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              level={level + 1} 
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function Dashboard() {
+  const { data: categories = [], isLoading } = useCategories();
+  const createMutation = useCreateCategory();
+  const updateMutation = useUpdateCategory();
+  const deleteMutation = useDeleteCategory();
+  const { isUnlocked, lock, unlock } = useWholesale();
+  const { toast } = useToast();
+  const verify = useVerifyPassword();
+
+  const [search, setSearch] = useState("");
+  const [editingNode, setEditingNode] = useState<Partial<Category> | null>(null);
+  const [parentIdForAdd, setParentIdForAdd] = useState<number | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const [password, setPassword] = useState("");
+
+  const tree = buildTree(categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase())));
+
+  const handleAdd = (parentId: number | null) => {
+    setEditingNode({ type: 'FOLDER', parentId, name: '', sortOrder: 0 });
+    setParentIdForAdd(parentId);
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (category: Category) => {
+    setEditingNode(category);
+    setParentIdForAdd(category.parentId);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId) {
+      await deleteMutation.mutateAsync(deleteId);
+      setDeleteId(null);
+      toast({ title: "Deleted", description: "Category removed successfully." });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNode) return;
+
+    try {
+      if ('id' in editingNode && editingNode.id) {
+        await updateMutation.mutateAsync({ id: editingNode.id, ...editingNode });
+        toast({ title: "Updated", description: "Category updated successfully." });
+      } else {
+        await createMutation.mutateAsync(editingNode as any);
+        toast({ title: "Created", description: "Category created successfully." });
+      }
+      setIsDialogOpen(false);
+      setEditingNode(null);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save category.", variant: "destructive" });
+    }
+  };
+
+  const handleUnlock = async () => {
+    try {
+      const { valid } = await verify.mutateAsync({ password });
+      if (valid) {
+        unlock();
+        setShowUnlockDialog(false);
+        setPassword("");
+        toast({ title: "Wholesale Mode Unlocked", description: "You can now view wholesale prices." });
+      } else {
+        toast({ title: "Invalid Password", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error verifying password", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) return <div className="p-8 text-center">Loading lens prices...</div>;
+
+  return (
+    <div className="space-y-6 pb-20 md:pb-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold">Lens Prices</h1>
+          <p className="text-muted-foreground">Browse and manage lens retail and wholesale prices.</p>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            variant={isUnlocked ? "outline" : "default"}
+            className={cn("flex-1 sm:flex-none", isUnlocked && "text-green-600 border-green-200")}
+            onClick={() => isUnlocked ? lock() : setShowUnlockDialog(true)}
+          >
+            {isUnlocked ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+            {isUnlocked ? "Wholesale Unlocked" : "Unlock Wholesale"}
+          </Button>
+          <Button onClick={() => handleAdd(null)} className="flex-1 sm:flex-none shadow-lg shadow-primary/20">
+            <Plus className="w-4 h-4 mr-2" /> New Category
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+        <div className="p-4 border-b bg-muted/20">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+            <input 
+              className="w-full bg-background border border-input rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="Search lens by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div className="p-4 min-h-[400px]">
+          {tree.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Box className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p>No lens categories found.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {tree.map(node => (
+                <CategoryItem 
+                  key={node.id} 
+                  node={node} 
+                  onAdd={handleAdd}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Unlock Dialog */}
+      <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unlock Wholesale Mode</DialogTitle>
+            <DialogDescription>Enter the wholesale password to view wholesale prices.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              type="password" 
+              placeholder="Enter password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUnlockDialog(false)}>Cancel</Button>
+            <Button onClick={handleUnlock} disabled={verify.isPending}>
+              {verify.isPending ? "Verifying..." : "Unlock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{'id' in (editingNode || {}) ? 'Edit Category' : 'New Category'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select 
+                  value={editingNode?.type} 
+                  onValueChange={(val) => setEditingNode(prev => ({ ...prev, type: val as "FOLDER" | "ITEM" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FOLDER">Folder</SelectItem>
+                    <SelectItem value="ITEM">Item (Lens)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input 
+                  value={editingNode?.name || ''} 
+                  onChange={e => setEditingNode(prev => ({ ...prev, name: e.target.value }))}
+                  required 
+                />
+              </div>
+            </div>
+
+            {editingNode?.type === 'ITEM' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Retail Price</Label>
+                    <div className="relative">
+                      <DollarSign className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                      <Input 
+                        type="number" 
+                        className="pl-9" 
+                        value={editingNode?.customerPrice || ''} 
+                        onChange={e => setEditingNode(prev => ({ ...prev, customerPrice: parseFloat(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Wholesale Price</Label>
+                    <div className="relative">
+                      <DollarSign className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                      <Input 
+                        type="number" 
+                        className="pl-9"
+                        value={editingNode?.wholesalePrice || ''} 
+                        onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Power From</Label>
+                    <Input 
+                      type="number" step="0.25"
+                      value={editingNode?.fromPower || ''} 
+                      onChange={e => setEditingNode(prev => ({ ...prev, fromPower: parseFloat(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Power To</Label>
+                    <Input 
+                      type="number" step="0.25"
+                      value={editingNode?.toPower || ''} 
+                      onChange={e => setEditingNode(prev => ({ ...prev, toPower: parseFloat(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Category?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete this category and all its subcategories. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

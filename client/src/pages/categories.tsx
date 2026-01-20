@@ -13,7 +13,7 @@ import {
   Trash2, 
   ChevronRight, 
   ChevronLeft,
-  DollarSign, 
+  IndianRupee, 
   Box,
   Search
 } from "lucide-react";
@@ -266,8 +266,8 @@ export default function CategoriesPage() {
                       </div>
                       {node.type === 'ITEM' ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
-                          <span>Retail: <span className="font-bold text-foreground">${node.customerPrice}</span></span>
-                          {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ${node.wholesalePrice}</span>}
+                          <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
+                          {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>}
                           {node.sph && <span>SPH: {node.sph}</span>}
                           {node.cyl && <span>CYL: {node.cyl}</span>}
                         </div>
@@ -338,7 +338,7 @@ export default function CategoriesPage() {
                   <div className="space-y-2">
                     <Label>Retail Price</Label>
                     <div className="relative">
-                      <DollarSign className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                      <IndianRupee className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
                       <Input 
                         type="number" 
                         className="pl-9" 
@@ -350,7 +350,7 @@ export default function CategoriesPage() {
                   <div className="space-y-2">
                     <Label>Wholesale Price</Label>
                     <div className="relative">
-                      <DollarSign className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                      <IndianRupee className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
                       <Input 
                         type="number" 
                         className="pl-9"

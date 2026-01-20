@@ -10,7 +10,7 @@ import {
   Box, 
   ChevronRight,
   ChevronLeft,
-  DollarSign
+  IndianRupee
 } from "lucide-react";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { useWholesale } from "@/hooks/use-wholesale";
@@ -240,11 +240,11 @@ export default function Dashboard() {
                       {node.type === 'ITEM' ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                           <span className="text-sm">
-                            Retail: <span className="font-bold text-primary">${node.customerPrice}</span>
+                            Retail: <span className="font-bold text-primary">₹{node.customerPrice}</span>
                           </span>
                           {isUnlocked && (
                             <span className="text-sm text-green-600 font-medium bg-green-50 px-2 rounded-full border border-green-100">
-                              Wholesale: ${node.wholesalePrice}
+                              Wholesale: ₹{node.wholesalePrice}
                             </span>
                           )}
                           {node.sph && (

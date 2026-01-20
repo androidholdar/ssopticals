@@ -45,11 +45,11 @@
 .animate-marquee {
   display: inline-block;
   white-space: nowrap;
-  animation: marquee 10s linear infinite;
-  padding-right: 4rem; /* Buffer space */
+  animation: marquee 15s linear infinite;
 }
 
 .marquee-container {
+  display: flex;
   overflow: hidden;
   white-space: nowrap;
   width: 100%;

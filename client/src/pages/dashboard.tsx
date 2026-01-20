@@ -81,14 +81,17 @@ export default function Dashboard() {
   const [password, setPassword] = useState("");
   const [currentPath, setCurrentPath] = useState<number[]>([]);
 
-  // Get current node and its children
+  // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
   
-  // Filter categories to show only immediate children of current path
+  // FIXED: If there's a search term, show ALL matching categories regardless of parent
+  // If no search term, show only immediate children of currentPath
   const displayCategories = categories.filter(c => {
     const nameMatches = c.name.toLowerCase().includes(search.toLowerCase());
+    if (search) return nameMatches;
+    
     const isChild = c.parentId === currentId;
-    return isChild && nameMatches;
+    return isChild;
   }).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
   const handleBack = () => {
@@ -97,6 +100,7 @@ export default function Dashboard() {
 
   const handleNavigate = (id: number) => {
     setCurrentPath(prev => [...prev, id]);
+    setSearch(""); // Clear search when navigating into a folder
   };
 
   // Sync with browser history for back button support
@@ -150,7 +154,7 @@ export default function Dashboard() {
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b bg-muted/20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1">
-            {currentPath.length > 0 && (
+            {currentPath.length > 0 && !search && (
               <Button variant="ghost" size="icon" onClick={handleBack} className="h-9 w-9">
                 <ChevronLeft className="w-5 h-5" />
               </Button>
@@ -167,7 +171,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {currentPath.length > 0 && (
+        {currentPath.length > 0 && !search && (
           <div className="px-4 py-2 bg-muted/10 border-b flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-primary cursor-pointer" onClick={() => setCurrentPath([])}>Lens</span>
             {currentPath.map((id, index) => {
@@ -194,12 +198,7 @@ export default function Dashboard() {
           {displayCategories.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Box className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p>No items found in this category.</p>
-              {currentPath.length > 0 && (
-                <Button variant="ghost" onClick={handleBack} className="mt-2">
-                  Go Back
-                </Button>
-              )}
+              <p>{search ? "No lens found matching your search." : "No items found in this category."}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2">
@@ -207,8 +206,8 @@ export default function Dashboard() {
                 <div 
                   key={node.id}
                   className={cn(
-                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-border",
-                    node.type === 'ITEM' && "cursor-default"
+                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent hover:border-border",
+                    node.type === 'FOLDER' && "cursor-pointer"
                   )}
                   onClick={() => node.type === 'FOLDER' && handleNavigate(node.id)}
                 >

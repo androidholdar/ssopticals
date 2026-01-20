@@ -53,10 +53,14 @@ export default function CategoriesPage() {
   // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
   
+  // FIXED: If there's a search term, show ALL matching categories regardless of parent
+  // If no search term, show only immediate children of currentPath
   const displayCategories = categories.filter(c => {
     const nameMatches = c.name.toLowerCase().includes(search.toLowerCase());
+    if (search) return nameMatches;
+    
     const isChild = c.parentId === currentId;
-    return isChild && nameMatches;
+    return isChild;
   }).sort((a, b) => {
     if (a.type !== b.type) return a.type === 'FOLDER' ? -1 : 1;
     return (a.sortOrder || 0) - (b.sortOrder || 0);
@@ -68,6 +72,7 @@ export default function CategoriesPage() {
 
   const handleNavigate = (id: number) => {
     setCurrentPath(prev => [...prev, id]);
+    setSearch(""); // Clear search when navigating into a folder
   };
 
   useEffect(() => {
@@ -143,7 +148,7 @@ export default function CategoriesPage() {
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b bg-muted/20 flex items-center gap-4">
           <div className="flex items-center gap-2 flex-1">
-            {currentPath.length > 0 && (
+            {currentPath.length > 0 && !search && (
               <Button variant="ghost" size="icon" onClick={handleBack} className="h-9 w-9">
                 <ChevronLeft className="w-5 h-5" />
               </Button>
@@ -160,7 +165,7 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {currentPath.length > 0 && (
+        {currentPath.length > 0 && !search && (
           <div className="px-4 py-2 bg-muted/10 border-b flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-primary cursor-pointer" onClick={() => setCurrentPath([])}>Lens</span>
             {currentPath.map((id, index) => {
@@ -187,7 +192,7 @@ export default function CategoriesPage() {
           {displayCategories.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Box className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p>No items found. Create one to get started.</p>
+              <p>{search ? "No lens found matching your search." : "No items found. Create one to get started."}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2">

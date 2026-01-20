@@ -210,7 +210,7 @@ export default function CategoriesPage() {
                 <div 
                   key={node.id}
                   className={cn(
-                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent",
+                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none touch-none",
                     node.type === 'FOLDER' && "cursor-pointer",
                     longPressedId === node.id ? "bg-primary/5 border-primary/20 scale-[0.98]" : "hover:border-border"
                   )}
@@ -219,11 +219,25 @@ export default function CategoriesPage() {
                     if (longPressedId === node.id) return;
                     if (node.type === 'FOLDER') handleNavigate(node.id);
                   }}
-                  onMouseDown={() => handlePressStart(node.id)}
+                  onMouseDown={(e) => {
+                    // Prevent default only if it's not a button click
+                    if (!(e.target as HTMLElement).closest('button')) {
+                      handlePressStart(node.id);
+                    }
+                  }}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
-                  onTouchStart={() => handlePressStart(node.id)}
+                  onTouchStart={(e) => {
+                    // Prevent default to stop text selection on mobile
+                    if (!(e.target as HTMLElement).closest('button')) {
+                      handlePressStart(node.id);
+                    }
+                  }}
                   onTouchEnd={handlePressEnd}
+                  onContextMenu={(e) => {
+                    // Disable context menu to prevent conflicts with long press
+                    e.preventDefault();
+                  }}
                 >
                   <div className="flex items-center gap-3 overflow-hidden flex-1">
                     {node.type === 'FOLDER' ? (

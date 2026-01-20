@@ -216,7 +216,10 @@ export default function CategoriesPage() {
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (longPressedId === node.id) return;
+                    if (longPressedId === node.id) {
+                      setLongPressedId(null);
+                      return;
+                    }
                     if (node.type === 'FOLDER') handleNavigate(node.id);
                   }}
                   onMouseDown={(e) => {

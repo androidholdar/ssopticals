@@ -4,7 +4,7 @@ import { useWholesale } from "@/hooks/use-wholesale";
 import { type Category } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Folder, FolderOpen, FileText, Plus, Pencil, Trash2, ChevronRight, ChevronDown, DollarSign } from "lucide-react";
+import { Folder, FolderOpen, FileText, Plus, Pencil, Trash2, ChevronRight, ChevronDown, DollarSign, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,

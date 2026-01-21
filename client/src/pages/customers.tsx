@@ -125,7 +125,6 @@ export default function CustomersPage() {
         notes: "",
         prescriptionPhotoPath: ""
       });
-      toast({ title: "Success", description: "Customer record created." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to create customer.", variant: "destructive" });
     }
@@ -160,7 +159,6 @@ export default function CustomersPage() {
     try {
       await deleteMutation.mutateAsync(id);
       setSelectedCustomer(null);
-      toast({ title: "Success", description: "Customer record deleted." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete customer.", variant: "destructive" });
     }

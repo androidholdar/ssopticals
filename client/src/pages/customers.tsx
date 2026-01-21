@@ -9,9 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
-import QuickPinchZoom, { makeSelectable } from "react-quick-pinch-zoom";
+import QuickPinchZoom from "react-quick-pinch-zoom";
 
-const TouchableImg = makeSelectable('img');
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateCustomerRequest, type UpdateCustomerRequest } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
+import { type CreateCustomerRequest, type UpdateCustomerRequest } from "@shared/schema";
 
 type CustomerFilters = {
   search?: string;
@@ -67,6 +68,20 @@ export function useUpdateCustomer() {
       });
       if (!res.ok) throw new Error("Failed to update customer");
       return api.customers.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
+  });
+}
+
+export function useDeleteCustomer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.customers.delete.path, { id });
+      const res = await fetch(url, {
+        method: api.customers.delete.method,
+      });
+      if (!res.ok) throw new Error("Failed to delete customer");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
   });

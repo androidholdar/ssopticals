@@ -251,8 +251,6 @@ export class DatabaseStorage implements IStorage {
             type: cat.type,
             customerPrice: cat.customerPrice,
             wholesalePrice: cat.wholesalePrice,
-            sph: cat.sph,
-            cyl: cat.cyl,
             sortOrder: cat.sortOrder,
             updatedAt: new Date(cat.updatedAt)
           });

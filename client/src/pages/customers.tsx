@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useCustomers, useCreateCustomer, useUploadPhoto } from "@/hooks/use-customers";
+import { useCustomers, useCreateCustomer, useUploadPhoto, useDeleteCustomer } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ export default function CustomersPage() {
   const { data: customers = [], isLoading } = useCustomers({ search });
   const { data: presets = [] } = usePresets();
   const createMutation = useCreateCustomer();
+  const deleteMutation = useDeleteCustomer();
   const uploadMutation = useUploadPhoto();
   const { toast } = useToast();
 
@@ -61,7 +62,7 @@ export default function CustomersPage() {
 
     try {
       const { url } = await uploadMutation.mutateAsync(file);
-      setNewCustomer(prev => ({ ...prev, prescriptionPhotoPath: url }));
+      setNewCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
       toast({ title: "Photo Uploaded", description: "Prescription attached successfully." });
     } catch (error) {
       toast({ title: "Upload Failed", variant: "destructive" });
@@ -97,6 +98,17 @@ export default function CustomersPage() {
       toast({ title: "Success", description: "Customer record created." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to create customer.", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this customer record?")) return;
+    try {
+      await deleteMutation.mutateAsync(id);
+      setSelectedCustomer(null);
+      toast({ title: "Success", description: "Customer record deleted." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete customer.", variant: "destructive" });
     }
   };
 
@@ -393,8 +405,21 @@ export default function CustomersPage() {
 
               {selectedCustomer.prescriptionPhotoPath && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Prescription Photo</Label>
-                  <div className="border rounded-xl overflow-hidden shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Prescription Photo</Label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 text-xs" 
+                      onClick={() => window.open(selectedCustomer.prescriptionPhotoPath, '_blank')}
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" /> Open Full View
+                    </Button>
+                  </div>
+                  <div 
+                    className="border rounded-xl overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    onClick={() => window.open(selectedCustomer.prescriptionPhotoPath, '_blank')}
+                  >
                     <img 
                       src={selectedCustomer.prescriptionPhotoPath} 
                       alt="Prescription" 
@@ -404,7 +429,15 @@ export default function CustomersPage() {
                 </div>
               )}
 
-              <DialogFooter>
+              <DialogFooter className="flex-row justify-between sm:justify-between items-center gap-4">
+                <Button 
+                  variant="outline" 
+                  className="text-destructive hover:text-destructive" 
+                  onClick={() => handleDelete(selectedCustomer.id)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete Record
+                </Button>
                 <Button onClick={() => setSelectedCustomer(null)}>Close</Button>
               </DialogFooter>
             </div>

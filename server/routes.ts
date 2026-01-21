@@ -267,8 +267,7 @@ export async function seedDatabase() {
       parentId: hc.id,
       customerPrice: 650,
       wholesalePrice: 520,
-      fromPower: -6,
-      toPower: -2
+      sortOrder: 0
     });
 
     // ARC
@@ -279,8 +278,7 @@ export async function seedDatabase() {
       parentId: arc.id,
       customerPrice: 750,
       wholesalePrice: 600,
-      fromPower: -6,
-      toPower: -2
+      sortOrder: 0
     });
 
     // Plus
@@ -292,8 +290,7 @@ export async function seedDatabase() {
       parentId: bluecut.id,
       customerPrice: 1200,
       wholesalePrice: 900,
-      fromPower: 2,
-      toPower: 6
+      sortOrder: 0
     });
 
     // Presets

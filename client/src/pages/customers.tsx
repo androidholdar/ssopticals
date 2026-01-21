@@ -7,8 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
+import QuickPinchZoom, { makeSelectable } from "react-quick-pinch-zoom";
+
+const TouchableImg = makeSelectable('img');
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -562,23 +565,47 @@ export default function CustomersPage() {
 
       {/* Prescription Photo Viewer Modal */}
       <Dialog open={isPhotoViewerOpen} onOpenChange={setIsPhotoViewerOpen}>
-        <DialogContent className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute top-2 right-2 text-white hover:bg-white/20 z-10"
-              onClick={() => setIsPhotoViewerOpen(false)}
-            >
-              <X className="w-5 h-5" />
-            </Button>
+        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 bg-black/95 border-none rounded-none flex flex-col">
+          <div className="relative flex-1 flex items-center justify-center overflow-hidden">
+            <div className="absolute top-4 right-4 z-50 flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-black/50 text-white hover:bg-white/20 rounded-full"
+                onClick={() => setIsPhotoViewerOpen(false)}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+            
             {selectedCustomer?.prescriptionPhotoPath && (
-              <img 
-                src={selectedCustomer.prescriptionPhotoPath} 
-                alt="Prescription Full View" 
-                className="max-w-full max-h-[90vh] object-contain rounded-md"
-              />
+              <QuickPinchZoom
+                onUpdate={({ x, y, scale }) => {
+                  const el = document.getElementById('zoom-img');
+                  if (el) {
+                    el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+                  }
+                }}
+                wheelScaleFactor={0.5}
+                draggableUnZoomed={false}
+                inertia={true}
+              >
+                <div className="w-full h-full flex items-center justify-center">
+                  <img 
+                    id="zoom-img"
+                    src={selectedCustomer.prescriptionPhotoPath} 
+                    alt="Prescription Full View" 
+                    className="max-w-full max-h-full object-contain will-change-transform"
+                    style={{ transition: 'transform 0.1s ease-out' }}
+                  />
+                </div>
+              </QuickPinchZoom>
             )}
+
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white text-xs border border-white/10 flex items-center gap-2">
+              <Maximize2 className="w-3 h-3" />
+              Pinch to zoom in/out
+            </div>
           </div>
         </DialogContent>
       </Dialog>

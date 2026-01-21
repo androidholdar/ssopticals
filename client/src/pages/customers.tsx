@@ -40,12 +40,18 @@ export default function CustomersPage() {
     mobile: "",
     address: "",
     age: "",
-    newPowerSph: "",
-    newPowerCyl: "",
-    newPowerAxis: "",
-    oldPowerSph: "",
-    oldPowerCyl: "",
-    oldPowerAxis: "",
+    newPowerRightSph: "",
+    newPowerRightCyl: "",
+    newPowerRightAxis: "",
+    newPowerLeftSph: "",
+    newPowerLeftCyl: "",
+    newPowerLeftAxis: "",
+    oldPowerRightSph: "",
+    oldPowerRightCyl: "",
+    oldPowerRightAxis: "",
+    oldPowerLeftSph: "",
+    oldPowerLeftCyl: "",
+    oldPowerLeftAxis: "",
     notes: "",
     prescriptionPhotoPath: ""
   });
@@ -104,12 +110,18 @@ export default function CustomersPage() {
         mobile: "",
         address: "",
         age: "",
-        newPowerSph: "",
-        newPowerCyl: "",
-        newPowerAxis: "",
-        oldPowerSph: "",
-        oldPowerCyl: "",
-        oldPowerAxis: "",
+        newPowerRightSph: "",
+        newPowerRightCyl: "",
+        newPowerRightAxis: "",
+        newPowerLeftSph: "",
+        newPowerLeftCyl: "",
+        newPowerLeftAxis: "",
+        oldPowerRightSph: "",
+        oldPowerRightCyl: "",
+        oldPowerRightAxis: "",
+        oldPowerLeftSph: "",
+        oldPowerLeftCyl: "",
+        oldPowerLeftAxis: "",
         notes: "",
         prescriptionPhotoPath: ""
       });
@@ -233,48 +245,100 @@ export default function CustomersPage() {
         return (
           <div className="col-span-2 space-y-4 pt-2 border-t mt-2">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">New Power</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs">SPH</Label>
-                <Input 
-                  placeholder="SPH"
-                  value={currentData.newPowerSph || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, newPowerSph: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, newPowerSph: e.target.value }));
-                    }
-                  }} 
-                />
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Right Eye (R)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.newPowerRightSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.newPowerRightCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.newPowerRightAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">CYL</Label>
-                <Input 
-                  placeholder="CYL"
-                  value={currentData.newPowerCyl || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, newPowerCyl: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, newPowerCyl: e.target.value }));
-                    }
-                  }} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">AXIS</Label>
-                <Input 
-                  placeholder="AXIS"
-                  value={currentData.newPowerAxis || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, newPowerAxis: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, newPowerAxis: e.target.value }));
-                    }
-                  }} 
-                />
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.newPowerLeftSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.newPowerLeftCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.newPowerLeftAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -283,48 +347,100 @@ export default function CustomersPage() {
         return (
           <div className="col-span-2 space-y-4 pt-2 border-t mt-2">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Old Power</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs">SPH</Label>
-                <Input 
-                  placeholder="SPH"
-                  value={currentData.oldPowerSph || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, oldPowerSph: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, oldPowerSph: e.target.value }));
-                    }
-                  }} 
-                />
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Right Eye (R)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.oldPowerRightSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.oldPowerRightCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.oldPowerRightAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">CYL</Label>
-                <Input 
-                  placeholder="CYL"
-                  value={currentData.oldPowerCyl || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, oldPowerCyl: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, oldPowerCyl: e.target.value }));
-                    }
-                  }} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">AXIS</Label>
-                <Input 
-                  placeholder="AXIS"
-                  value={currentData.oldPowerAxis || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, oldPowerAxis: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, oldPowerAxis: e.target.value }));
-                    }
-                  }} 
-                />
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.oldPowerLeftSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.oldPowerLeftCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.oldPowerLeftAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -600,40 +716,80 @@ export default function CustomersPage() {
                       </div>
                     </div>
                   )}
-                  {(selectedCustomer.newPowerSph || selectedCustomer.newPowerCyl || selectedCustomer.newPowerAxis) && (
-                    <div className="space-y-2 col-span-2 border-t pt-2">
+                  {(selectedCustomer.newPowerRightSph || selectedCustomer.newPowerRightCyl || selectedCustomer.newPowerRightAxis || selectedCustomer.newPowerLeftSph || selectedCustomer.newPowerLeftCyl || selectedCustomer.newPowerLeftAxis) && (
+                    <div className="space-y-4 col-span-2 border-t pt-2">
                       <Label className="text-xs text-primary uppercase tracking-wider font-semibold">New Power</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-primary/5 p-2 rounded text-center">
-                          <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
-                          <div className="font-bold">{selectedCustomer.newPowerSph || "-"}</div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Right Eye (R)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-primary/5 p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
+                            <div className="font-bold">{selectedCustomer.newPowerRightSph || "-"}</div>
+                          </div>
+                          <div className="bg-primary/5 p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
+                            <div className="font-bold">{selectedCustomer.newPowerRightCyl || "-"}</div>
+                          </div>
+                          <div className="bg-primary/5 p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
+                            <div className="font-bold">{selectedCustomer.newPowerRightAxis || "-"}</div>
+                          </div>
                         </div>
-                        <div className="bg-primary/5 p-2 rounded text-center">
-                          <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
-                          <div className="font-bold">{selectedCustomer.newPowerCyl || "-"}</div>
-                        </div>
-                        <div className="bg-primary/5 p-2 rounded text-center">
-                          <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
-                          <div className="font-bold">{selectedCustomer.newPowerAxis || "-"}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Left Eye (L)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-primary/5 p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
+                            <div className="font-bold">{selectedCustomer.newPowerLeftSph || "-"}</div>
+                          </div>
+                          <div className="bg-primary/5 p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
+                            <div className="font-bold">{selectedCustomer.newPowerLeftCyl || "-"}</div>
+                          </div>
+                          <div className="bg-primary/5 p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
+                            <div className="font-bold">{selectedCustomer.newPowerLeftAxis || "-"}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
-                  {(selectedCustomer.oldPowerSph || selectedCustomer.oldPowerCyl || selectedCustomer.oldPowerAxis) && (
-                    <div className="space-y-2 col-span-2 border-t pt-2">
+                  {(selectedCustomer.oldPowerRightSph || selectedCustomer.oldPowerRightCyl || selectedCustomer.oldPowerRightAxis || selectedCustomer.oldPowerLeftSph || selectedCustomer.oldPowerLeftCyl || selectedCustomer.oldPowerLeftAxis) && (
+                    <div className="space-y-4 col-span-2 border-t pt-2">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Old Power</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-muted p-2 rounded text-center">
-                          <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
-                          <div className="font-bold">{selectedCustomer.oldPowerSph || "-"}</div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Right Eye (R)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-muted p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
+                            <div className="font-bold">{selectedCustomer.oldPowerRightSph || "-"}</div>
+                          </div>
+                          <div className="bg-muted p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
+                            <div className="font-bold">{selectedCustomer.oldPowerRightCyl || "-"}</div>
+                          </div>
+                          <div className="bg-muted p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
+                            <div className="font-bold">{selectedCustomer.oldPowerRightAxis || "-"}</div>
+                          </div>
                         </div>
-                        <div className="bg-muted p-2 rounded text-center">
-                          <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
-                          <div className="font-bold">{selectedCustomer.oldPowerCyl || "-"}</div>
-                        </div>
-                        <div className="bg-muted p-2 rounded text-center">
-                          <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
-                          <div className="font-bold">{selectedCustomer.oldPowerAxis || "-"}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Left Eye (L)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-muted p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
+                            <div className="font-bold">{selectedCustomer.oldPowerLeftSph || "-"}</div>
+                          </div>
+                          <div className="bg-muted p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
+                            <div className="font-bold">{selectedCustomer.oldPowerLeftCyl || "-"}</div>
+                          </div>
+                          <div className="bg-muted p-2 rounded text-center">
+                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
+                            <div className="font-bold">{selectedCustomer.oldPowerLeftAxis || "-"}</div>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -196,8 +196,6 @@ export class DatabaseStorage implements IStorage {
       { key: "age", label: "Age" },
       { key: "address", label: "Address" },
       { key: "mobile", label: "Mobile Number" },
-      { key: "lensPowerCurrent", label: "Current Lens Power" },
-      { key: "lensPowerPrevious", label: "Previous Lens Power" },
       { key: "notes", label: "Notes" },
       { key: "photo", label: "Prescription Photo" },
     ];
@@ -267,8 +265,6 @@ export class DatabaseStorage implements IStorage {
             age: cust.age,
             address: cust.address,
             mobile: cust.mobile,
-            lensPowerCurrent: cust.lensPowerCurrent,
-            lensPowerPrevious: cust.lensPowerPrevious,
             notes: cust.notes,
             prescriptionPhotoPath: cust.prescriptionPhotoPath,
             createdAt: new Date(cust.createdAt)

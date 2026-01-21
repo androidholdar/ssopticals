@@ -40,8 +40,6 @@ export default function CustomersPage() {
     mobile: "",
     address: "",
     age: "",
-    lensPowerCurrent: "",
-    lensPowerPrevious: "",
     notes: "",
     prescriptionPhotoPath: ""
   });
@@ -100,8 +98,6 @@ export default function CustomersPage() {
         mobile: "",
         address: "",
         age: "",
-        lensPowerCurrent: "",
-        lensPowerPrevious: "",
         notes: "",
         prescriptionPhotoPath: ""
       });
@@ -220,41 +216,6 @@ export default function CustomersPage() {
               onChange={e => setter(e.target.value)} 
             />
           </div>
-        );
-      case 'lens_power':
-        return (
-          <>
-            <div className="space-y-2 col-span-2 sm:col-span-1">
-              <Label>Current Lens Power</Label>
-              <div className="relative">
-                <Eye className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                <Input 
-                  className="pl-9"
-                  placeholder="R / L"
-                  value={currentData.lensPowerCurrent || ""} 
-                  onChange={e => setter(e.target.value)} 
-                />
-              </div>
-            </div>
-            <div className="space-y-2 col-span-2 sm:col-span-1">
-              <Label>Previous Lens Power</Label>
-              <div className="relative">
-                <Eye className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                <Input 
-                  className="pl-9"
-                  placeholder="R / L"
-                  value={currentData.lensPowerPrevious || ""} 
-                  onChange={e => {
-                    if (isEdit) {
-                      setSelectedCustomer((prev: any) => ({ ...prev, lensPowerPrevious: e.target.value }));
-                    } else {
-                      setNewCustomer((prev: any) => ({ ...prev, lensPowerPrevious: e.target.value }));
-                    }
-                  }} 
-                />
-              </div>
-            </div>
-          </>
         );
        case 'notes':
         return (
@@ -525,18 +486,6 @@ export default function CustomersPage() {
                         <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
                         {selectedCustomer.address}
                       </div>
-                    </div>
-                  )}
-                  {selectedCustomer.lensPowerCurrent && (
-                    <div className="space-y-1 col-span-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Current Lens Power</Label>
-                      <div className="font-medium bg-secondary/50 p-2 rounded-md">{selectedCustomer.lensPowerCurrent}</div>
-                    </div>
-                  )}
-                  {selectedCustomer.lensPowerPrevious && (
-                    <div className="space-y-1 col-span-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Previous Lens Power</Label>
-                      <div className="font-medium bg-secondary/30 p-2 rounded-md">{selectedCustomer.lensPowerPrevious}</div>
                     </div>
                   )}
                   {selectedCustomer.notes && (

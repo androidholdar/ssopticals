@@ -29,8 +29,6 @@ export const customers = pgTable("customers", {
   age: integer("age"),
   address: text("address"),
   mobile: text("mobile"),
-  lensPowerCurrent: text("lens_power_current"),
-  lensPowerPrevious: text("lens_power_previous"),
   notes: text("notes"),
   prescriptionPhotoPath: text("prescription_photo_path"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -245,7 +245,7 @@ function PresetEditor() {
 
   const toggleField = async (fieldId: number, current: boolean) => {
     const fields = activePreset.fields.map(f => 
-      f.id === fieldId ? { id: f.id, isEnabled: !current, orderIndex: f.orderIndex } : { id: f.id, isEnabled: f.isEnabled, orderIndex: f.orderIndex }
+      f.id === fieldId ? { id: f.id, isEnabled: !current, orderIndex: f.orderIndex } : { id: f.id, isEnabled: !!f.isEnabled, orderIndex: f.orderIndex }
     );
     
     try {
@@ -280,8 +280,8 @@ function PresetEditor() {
             <div key={field.id} className="flex items-center justify-between py-2">
               <span className="font-medium">{field.label}</span>
               <Switch 
-                checked={field.isEnabled} 
-                onCheckedChange={() => toggleField(field.id, field.isEnabled || false)}
+                checked={!!field.isEnabled} 
+                onCheckedChange={() => toggleField(field.id, !!field.isEnabled)}
                 disabled={field.fieldKey === 'name'} // Name is mandatory
               />
             </div>

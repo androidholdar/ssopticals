@@ -196,6 +196,8 @@ export class DatabaseStorage implements IStorage {
       { key: "age", label: "Age" },
       { key: "address", label: "Address" },
       { key: "mobile", label: "Mobile Number" },
+      { key: "newPower", label: "New Power" },
+      { key: "oldPower", label: "Old Power" },
       { key: "notes", label: "Notes" },
       { key: "photo", label: "Prescription Photo" },
     ];

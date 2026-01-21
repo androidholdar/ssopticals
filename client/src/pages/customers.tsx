@@ -641,11 +641,18 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
             <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{customer.name}</h3>
             <p className="text-xs text-muted-foreground">{format(new Date(customer.date), 'MMM d, yyyy')}</p>
           </div>
-          {customer.lensPowerCurrent && (
-            <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">
-              {customer.lensPowerCurrent}
-            </span>
-          )}
+          <div className="flex flex-col gap-1 items-end">
+            {customer.lensPowerCurrent && (
+              <span className="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="opacity-70">C:</span> {customer.lensPowerCurrent}
+              </span>
+            )}
+            {customer.lensPowerPrevious && (
+              <span className="text-[10px] font-mono bg-secondary px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="opacity-70">P:</span> {customer.lensPowerPrevious}
+              </span>
+            )}
+          </div>
         </div>
         
         <div className="space-y-1 text-sm text-muted-foreground">

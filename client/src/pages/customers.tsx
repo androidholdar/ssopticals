@@ -40,6 +40,12 @@ export default function CustomersPage() {
     mobile: "",
     address: "",
     age: "",
+    newPowerSph: "",
+    newPowerCyl: "",
+    newPowerAxis: "",
+    oldPowerSph: "",
+    oldPowerCyl: "",
+    oldPowerAxis: "",
     notes: "",
     prescriptionPhotoPath: ""
   });
@@ -98,6 +104,12 @@ export default function CustomersPage() {
         mobile: "",
         address: "",
         age: "",
+        newPowerSph: "",
+        newPowerCyl: "",
+        newPowerAxis: "",
+        oldPowerSph: "",
+        oldPowerCyl: "",
+        oldPowerAxis: "",
         notes: "",
         prescriptionPhotoPath: ""
       });
@@ -215,6 +227,106 @@ export default function CustomersPage() {
               value={currentData.age} 
               onChange={e => setter(e.target.value)} 
             />
+          </div>
+        );
+      case 'newPower':
+        return (
+          <div className="col-span-2 space-y-4 pt-2 border-t mt-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">New Power</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">SPH</Label>
+                <Input 
+                  placeholder="SPH"
+                  value={currentData.newPowerSph || ""} 
+                  onChange={e => {
+                    if (isEdit) {
+                      setSelectedCustomer((prev: any) => ({ ...prev, newPowerSph: e.target.value }));
+                    } else {
+                      setNewCustomer((prev: any) => ({ ...prev, newPowerSph: e.target.value }));
+                    }
+                  }} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">CYL</Label>
+                <Input 
+                  placeholder="CYL"
+                  value={currentData.newPowerCyl || ""} 
+                  onChange={e => {
+                    if (isEdit) {
+                      setSelectedCustomer((prev: any) => ({ ...prev, newPowerCyl: e.target.value }));
+                    } else {
+                      setNewCustomer((prev: any) => ({ ...prev, newPowerCyl: e.target.value }));
+                    }
+                  }} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">AXIS</Label>
+                <Input 
+                  placeholder="AXIS"
+                  value={currentData.newPowerAxis || ""} 
+                  onChange={e => {
+                    if (isEdit) {
+                      setSelectedCustomer((prev: any) => ({ ...prev, newPowerAxis: e.target.value }));
+                    } else {
+                      setNewCustomer((prev: any) => ({ ...prev, newPowerAxis: e.target.value }));
+                    }
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+        );
+      case 'oldPower':
+        return (
+          <div className="col-span-2 space-y-4 pt-2 border-t mt-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Old Power</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">SPH</Label>
+                <Input 
+                  placeholder="SPH"
+                  value={currentData.oldPowerSph || ""} 
+                  onChange={e => {
+                    if (isEdit) {
+                      setSelectedCustomer((prev: any) => ({ ...prev, oldPowerSph: e.target.value }));
+                    } else {
+                      setNewCustomer((prev: any) => ({ ...prev, oldPowerSph: e.target.value }));
+                    }
+                  }} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">CYL</Label>
+                <Input 
+                  placeholder="CYL"
+                  value={currentData.oldPowerCyl || ""} 
+                  onChange={e => {
+                    if (isEdit) {
+                      setSelectedCustomer((prev: any) => ({ ...prev, oldPowerCyl: e.target.value }));
+                    } else {
+                      setNewCustomer((prev: any) => ({ ...prev, oldPowerCyl: e.target.value }));
+                    }
+                  }} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">AXIS</Label>
+                <Input 
+                  placeholder="AXIS"
+                  value={currentData.oldPowerAxis || ""} 
+                  onChange={e => {
+                    if (isEdit) {
+                      setSelectedCustomer((prev: any) => ({ ...prev, oldPowerAxis: e.target.value }));
+                    } else {
+                      setNewCustomer((prev: any) => ({ ...prev, oldPowerAxis: e.target.value }));
+                    }
+                  }} 
+                />
+              </div>
+            </div>
           </div>
         );
        case 'notes':
@@ -485,6 +597,44 @@ export default function CustomersPage() {
                       <div className="flex items-start gap-2 font-medium">
                         <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
                         {selectedCustomer.address}
+                      </div>
+                    </div>
+                  )}
+                  {(selectedCustomer.newPowerSph || selectedCustomer.newPowerCyl || selectedCustomer.newPowerAxis) && (
+                    <div className="space-y-2 col-span-2 border-t pt-2">
+                      <Label className="text-xs text-primary uppercase tracking-wider font-semibold">New Power</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-primary/5 p-2 rounded text-center">
+                          <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
+                          <div className="font-bold">{selectedCustomer.newPowerSph || "-"}</div>
+                        </div>
+                        <div className="bg-primary/5 p-2 rounded text-center">
+                          <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
+                          <div className="font-bold">{selectedCustomer.newPowerCyl || "-"}</div>
+                        </div>
+                        <div className="bg-primary/5 p-2 rounded text-center">
+                          <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
+                          <div className="font-bold">{selectedCustomer.newPowerAxis || "-"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {(selectedCustomer.oldPowerSph || selectedCustomer.oldPowerCyl || selectedCustomer.oldPowerAxis) && (
+                    <div className="space-y-2 col-span-2 border-t pt-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Old Power</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-muted p-2 rounded text-center">
+                          <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
+                          <div className="font-bold">{selectedCustomer.oldPowerSph || "-"}</div>
+                        </div>
+                        <div className="bg-muted p-2 rounded text-center">
+                          <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
+                          <div className="font-bold">{selectedCustomer.oldPowerCyl || "-"}</div>
+                        </div>
+                        <div className="bg-muted p-2 rounded text-center">
+                          <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
+                          <div className="font-bold">{selectedCustomer.oldPowerAxis || "-"}</div>
+                        </div>
                       </div>
                     </div>
                   )}

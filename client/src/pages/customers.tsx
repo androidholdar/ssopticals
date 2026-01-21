@@ -27,6 +27,7 @@ export default function CustomersPage() {
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -222,7 +223,7 @@ export default function CustomersPage() {
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Today</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.today.map(c => <CustomerCard key={c.id} customer={c} />)}
+              {grouped.today.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
             </div>
           </section>
         )}
@@ -231,7 +232,7 @@ export default function CustomersPage() {
           <section>
              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Yesterday</h3>
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.yesterday.map(c => <CustomerCard key={c.id} customer={c} />)}
+              {grouped.yesterday.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
             </div>
           </section>
         )}
@@ -240,7 +241,7 @@ export default function CustomersPage() {
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Older</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.older.map(c => <CustomerCard key={c.id} customer={c} />)}
+              {grouped.older.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
             </div>
           </section>
         )}
@@ -326,13 +327,97 @@ export default function CustomersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Customer Details Dialog */}
+      <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Customer Details</DialogTitle>
+          </DialogHeader>
+          {selectedCustomer && (
+            <div className="space-y-6 pt-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <User className="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
+                  <p className="text-muted-foreground">{format(new Date(selectedCustomer.date), 'MMMM d, yyyy')}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                {selectedCustomer.mobile && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Mobile Number</Label>
+                    <div className="flex items-center gap-2 font-medium">
+                      <Phone className="w-4 h-4 text-primary" />
+                      {selectedCustomer.mobile}
+                    </div>
+                  </div>
+                )}
+                {selectedCustomer.age && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Age</Label>
+                    <div className="font-medium">{selectedCustomer.age} years</div>
+                  </div>
+                )}
+                {selectedCustomer.address && (
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Address</Label>
+                    <div className="flex items-start gap-2 font-medium">
+                      <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
+                      {selectedCustomer.address}
+                    </div>
+                  </div>
+                )}
+                {selectedCustomer.lensPowerCurrent && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Current Lens Power</Label>
+                    <div className="font-medium bg-secondary/50 p-2 rounded-md">{selectedCustomer.lensPowerCurrent}</div>
+                  </div>
+                )}
+                {selectedCustomer.lensPowerPrevious && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Previous Lens Power</Label>
+                    <div className="font-medium bg-secondary/30 p-2 rounded-md">{selectedCustomer.lensPowerPrevious}</div>
+                  </div>
+                )}
+                {selectedCustomer.notes && (
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notes</Label>
+                    <div className="font-medium bg-muted p-3 rounded-lg text-sm">{selectedCustomer.notes}</div>
+                  </div>
+                )}
+              </div>
+
+              {selectedCustomer.prescriptionPhotoPath && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Prescription Photo</Label>
+                  <div className="border rounded-xl overflow-hidden shadow-sm">
+                    <img 
+                      src={selectedCustomer.prescriptionPhotoPath} 
+                      alt="Prescription" 
+                      className="w-full h-auto max-h-[300px] object-contain bg-muted/50" 
+                    />
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button onClick={() => setSelectedCustomer(null)}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function CustomerCard({ customer }: { customer: any }) {
+function CustomerCard({ customer, onClick }: { customer: any, onClick: () => void }) {
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+    <Card onClick={onClick} className="hover:shadow-md transition-shadow cursor-pointer group">
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-3">
           <div>

@@ -106,13 +106,59 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Configure application preferences.</p>
       </div>
 
-      <Tabs defaultValue="security" className="w-full">
+      <Tabs defaultValue="data" className="w-full">
         <TabsList className="w-full md:w-auto grid grid-cols-3">
-          <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="data">Backup & Restore</TabsTrigger>
-          <TabsTrigger value="presets">Form Presets</TabsTrigger>
+          <TabsTrigger value="presets">Form</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         
+        <TabsContent value="data" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Database className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Backup & Restore</CardTitle>
+                  <CardDescription>Export your data as a backup file or restore from a previous one.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col gap-4 max-w-md">
+                <div className="space-y-2">
+                  <h3 className="font-medium text-sm">Backup</h3>
+                  <p className="text-xs text-muted-foreground">Download a JSON file containing all your lens categories, prices, and customer records.</p>
+                  <Button onClick={handleBackup} className="w-full sm:w-auto">
+                    <Download className="w-4 h-4 mr-2" /> Download Backup
+                  </Button>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <h3 className="font-medium text-sm">Restore</h3>
+                  <p className="text-xs text-muted-foreground">Upload a previously saved backup file. <strong>Warning: This will overwrite all current data.</strong></p>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept=".json" 
+                    onChange={handleFileChange}
+                  />
+                  <Button variant="outline" onClick={handleRestoreClick} className="w-full sm:w-auto" disabled={isRestoring}>
+                    <Upload className="w-4 h-4 mr-2" /> {isRestoring ? "Restoring..." : "Restore from File"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="presets" className="mt-6">
+          <PresetEditor />
+        </TabsContent>
+
         <TabsContent value="security" className="mt-6">
           <Card>
             <CardHeader>
@@ -181,52 +227,6 @@ export default function SettingsPage() {
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="data" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Database className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle>Backup & Restore</CardTitle>
-                  <CardDescription>Export your data as a backup file or restore from a previous one.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col gap-4 max-w-md">
-                <div className="space-y-2">
-                  <h3 className="font-medium text-sm">Backup</h3>
-                  <p className="text-xs text-muted-foreground">Download a JSON file containing all your lens categories, prices, and customer records.</p>
-                  <Button onClick={handleBackup} className="w-full sm:w-auto">
-                    <Download className="w-4 h-4 mr-2" /> Download Backup
-                  </Button>
-                </div>
-
-                <div className="space-y-2 pt-4 border-t">
-                  <h3 className="font-medium text-sm">Restore</h3>
-                  <p className="text-xs text-muted-foreground">Upload a previously saved backup file. <strong>Warning: This will overwrite all current data.</strong></p>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept=".json" 
-                    onChange={handleFileChange}
-                  />
-                  <Button variant="outline" onClick={handleRestoreClick} className="w-full sm:w-auto" disabled={isRestoring}>
-                    <Upload className="w-4 h-4 mr-2" /> {isRestoring ? "Restoring..." : "Restore from File"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="presets" className="mt-6">
-          <PresetEditor />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useCustomers, useCreateCustomer, useUploadPhoto, useDeleteCustomer } from "@/hooks/use-customers";
+import { useCustomers, useCreateCustomer, useUploadPhoto, useDeleteCustomer, useUpdateCustomer } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,12 +23,15 @@ export default function CustomersPage() {
   const { data: customers = [], isLoading } = useCustomers({ search });
   const { data: presets = [] } = usePresets();
   const createMutation = useCreateCustomer();
+  const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
   const uploadMutation = useUploadPhoto();
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -42,6 +45,7 @@ export default function CustomersPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // Determine active preset fields
   const activePreset = presets.find(p => p.isActive) || presets[0];
@@ -56,13 +60,17 @@ export default function CustomersPage() {
     return acc;
   }, { today: [], yesterday: [], older: [] });
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       const { url } = await uploadMutation.mutateAsync(file);
-      setNewCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
+      if (isEdit) {
+        setSelectedCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
+      } else {
+        setNewCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
+      }
       toast({ title: "Photo Uploaded", description: "Prescription attached successfully." });
     } catch (error) {
       toast({ title: "Upload Failed", variant: "destructive" });
@@ -101,6 +109,30 @@ export default function CustomersPage() {
     }
   };
 
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomer) return;
+    try {
+      if (selectedCustomer.mobile && selectedCustomer.mobile.length !== 10) {
+        return toast({ 
+          title: "Invalid Mobile Number", 
+          description: "Mobile number must be exactly 10 digits.", 
+          variant: "destructive" 
+        });
+      }
+      const { id, createdAt, ...updates } = selectedCustomer;
+      await updateMutation.mutateAsync({
+        id,
+        ...updates,
+        age: updates.age ? parseInt(updates.age) : undefined,
+      });
+      setIsEditMode(false);
+      toast({ title: "Success", description: "Customer record updated." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update customer.", variant: "destructive" });
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this customer record?")) return;
     try {
@@ -112,7 +144,16 @@ export default function CustomersPage() {
     }
   };
 
-  const renderField = (key: string, label: string) => {
+  const renderField = (key: string, label: string, isEdit: boolean = false) => {
+    const currentData = isEdit ? selectedCustomer : newCustomer;
+    const setter = (val: any) => {
+      if (isEdit) {
+        setSelectedCustomer((prev: any) => ({ ...prev, [key === 'lens_power' ? 'lensPowerCurrent' : key]: val }));
+      } else {
+        setNewCustomer((prev: any) => ({ ...prev, [key === 'lens_power' ? 'lensPowerCurrent' : key]: val }));
+      }
+    };
+
     switch(key) {
       case 'name':
         return (
@@ -122,8 +163,8 @@ export default function CustomersPage() {
               <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
               <Input 
                 className="pl-9"
-                value={newCustomer.name} 
-                onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                value={currentData.name} 
+                onChange={e => setter(e.target.value)}
                 required 
               />
             </div>
@@ -142,11 +183,11 @@ export default function CustomersPage() {
                 pattern="[0-9]*"
                 maxLength={10}
                 placeholder="10 digit number"
-                value={newCustomer.mobile} 
+                value={currentData.mobile} 
                 onChange={e => {
                   const val = e.target.value.replace(/\D/g, '');
                   if (val.length <= 10) {
-                    setNewCustomer({ ...newCustomer, mobile: val });
+                    setter(val);
                   }
                 }} 
               />
@@ -161,8 +202,8 @@ export default function CustomersPage() {
               <MapPin className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
               <Input 
                 className="pl-9"
-                value={newCustomer.address} 
-                onChange={e => setNewCustomer({ ...newCustomer, address: e.target.value })} 
+                value={currentData.address} 
+                onChange={e => setter(e.target.value)} 
               />
             </div>
           </div>
@@ -173,12 +214,12 @@ export default function CustomersPage() {
             <Label>{label}</Label>
             <Input 
               type="number"
-              value={newCustomer.age} 
-              onChange={e => setNewCustomer({ ...newCustomer, age: e.target.value })} 
+              value={currentData.age} 
+              onChange={e => setter(e.target.value)} 
             />
           </div>
         );
-      case 'lens_power': // This maps to lensPowerCurrent in DB logic usually
+      case 'lens_power':
         return (
           <div className="space-y-2">
             <Label>{label}</Label>
@@ -187,8 +228,8 @@ export default function CustomersPage() {
               <Input 
                 className="pl-9"
                 placeholder="R / L"
-                value={newCustomer.lensPowerCurrent} 
-                onChange={e => setNewCustomer({ ...newCustomer, lensPowerCurrent: e.target.value })} 
+                value={currentData.lensPowerCurrent} 
+                onChange={e => setter(e.target.value)} 
               />
             </div>
           </div>
@@ -198,8 +239,8 @@ export default function CustomersPage() {
           <div className="space-y-2 col-span-2">
             <Label>{label}</Label>
             <Textarea 
-              value={newCustomer.notes} 
-              onChange={e => setNewCustomer({ ...newCustomer, notes: e.target.value })} 
+              value={currentData.notes} 
+              onChange={e => setter(e.target.value)} 
             />
           </div>
         );
@@ -323,7 +364,7 @@ export default function CustomersPage() {
                       accept="image/*" 
                       className="hidden" 
                       ref={fileInputRef}
-                      onChange={handleFileChange}
+                      onChange={(e) => handleFileChange(e, false)}
                     />
                   </div>
                 </div>
@@ -341,107 +382,204 @@ export default function CustomersPage() {
       </Dialog>
 
       {/* Customer Details Dialog */}
-      <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+      <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && (setSelectedCustomer(null), setIsEditMode(false))}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Customer Details</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{isEditMode ? "Edit Customer" : "Customer Details"}</DialogTitle>
+              {!isEditMode && (
+                <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}>
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selectedCustomer && (
-            <div className="space-y-6 pt-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <User className="w-8 h-8" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
-                  <p className="text-muted-foreground">{format(new Date(selectedCustomer.date), 'MMMM d, yyyy')}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                {selectedCustomer.mobile && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Mobile Number</Label>
-                    <div className="flex items-center gap-2 font-medium">
-                      <Phone className="w-4 h-4 text-primary" />
-                      {selectedCustomer.mobile}
+            isEditMode ? (
+              <form onSubmit={handleUpdate} className="space-y-6 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <Label>Date</Label>
+                    <div className="relative">
+                      <CalendarIcon className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                      <Input 
+                        type="date"
+                        className="pl-9"
+                        value={selectedCustomer.date}
+                        onChange={e => setSelectedCustomer({ ...selectedCustomer, date: e.target.value })}
+                        required
+                      />
                     </div>
                   </div>
-                )}
-                {selectedCustomer.age && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Age</Label>
-                    <div className="font-medium">{selectedCustomer.age} years</div>
-                  </div>
-                )}
-                {selectedCustomer.address && (
-                  <div className="space-y-1 col-span-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Address</Label>
-                    <div className="flex items-start gap-2 font-medium">
-                      <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
-                      {selectedCustomer.address}
+                  {fields.map(field => (
+                    <div key={field.id} className={cn(
+                      field.fieldKey === 'name' || field.fieldKey === 'address' || field.fieldKey === 'notes' ? "col-span-2" : "col-span-2 sm:col-span-1"
+                    )}>
+                      {renderField(field.fieldKey, field.label, true)}
+                    </div>
+                  ))}
+                  <div className="col-span-2 space-y-2">
+                    <Label>Prescription Photo</Label>
+                    <div className="flex items-center gap-4">
+                      <div 
+                        onClick={() => editFileInputRef.current?.click()}
+                        className="flex-1 border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                      >
+                        {selectedCustomer.prescriptionPhotoPath ? (
+                          <div className="relative">
+                            <img 
+                              src={selectedCustomer.prescriptionPhotoPath} 
+                              alt="Prescription" 
+                              className="max-h-32 object-contain rounded-md" 
+                            />
+                            <Button 
+                              size="icon" 
+                              variant="destructive" 
+                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCustomer({ ...selectedCustomer, prescriptionPhotoPath: "" });
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Camera className="w-8 h-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">Click to upload or take photo</span>
+                          </>
+                        )}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          ref={editFileInputRef}
+                          onChange={(e) => handleFileChange(e, true)}
+                        />
+                      </div>
                     </div>
                   </div>
-                )}
-                {selectedCustomer.lensPowerCurrent && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Current Lens Power</Label>
-                    <div className="font-medium bg-secondary/50 p-2 rounded-md">{selectedCustomer.lensPowerCurrent}</div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsEditMode(false)}>Cancel</Button>
+                  <Button type="submit" disabled={updateMutation.isPending || uploadMutation.isPending}>
+                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            ) : (
+              <div className="space-y-6 pt-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <User className="w-8 h-8" />
                   </div>
-                )}
-                {selectedCustomer.lensPowerPrevious && (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Previous Lens Power</Label>
-                    <div className="font-medium bg-secondary/30 p-2 rounded-md">{selectedCustomer.lensPowerPrevious}</div>
+                  <div>
+                    <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
+                    <p className="text-muted-foreground">{format(new Date(selectedCustomer.date), 'MMMM d, yyyy')}</p>
                   </div>
-                )}
-                {selectedCustomer.notes && (
-                  <div className="space-y-1 col-span-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notes</Label>
-                    <div className="font-medium bg-muted p-3 rounded-lg text-sm">{selectedCustomer.notes}</div>
-                  </div>
-                )}
-              </div>
+                </div>
 
-              {selectedCustomer.prescriptionPhotoPath && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Prescription Photo</Label>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 text-xs" 
-                      onClick={() => window.open(selectedCustomer.prescriptionPhotoPath, '_blank')}
+                <div className="grid grid-cols-2 gap-6">
+                  {selectedCustomer.mobile && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Mobile Number</Label>
+                      <div className="flex items-center gap-2 font-medium">
+                        <Phone className="w-4 h-4 text-primary" />
+                        {selectedCustomer.mobile}
+                      </div>
+                    </div>
+                  )}
+                  {selectedCustomer.age && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Age</Label>
+                      <div className="font-medium">{selectedCustomer.age} years</div>
+                    </div>
+                  )}
+                  {selectedCustomer.address && (
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Address</Label>
+                      <div className="flex items-start gap-2 font-medium">
+                        <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
+                        {selectedCustomer.address}
+                      </div>
+                    </div>
+                  )}
+                  {selectedCustomer.lensPowerCurrent && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Current Lens Power</Label>
+                      <div className="font-medium bg-secondary/50 p-2 rounded-md">{selectedCustomer.lensPowerCurrent}</div>
+                    </div>
+                  )}
+                  {selectedCustomer.lensPowerPrevious && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Previous Lens Power</Label>
+                      <div className="font-medium bg-secondary/30 p-2 rounded-md">{selectedCustomer.lensPowerPrevious}</div>
+                    </div>
+                  )}
+                  {selectedCustomer.notes && (
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notes</Label>
+                      <div className="font-medium bg-muted p-3 rounded-lg text-sm">{selectedCustomer.notes}</div>
+                    </div>
+                  )}
+                </div>
+
+                {selectedCustomer.prescriptionPhotoPath && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Prescription Photo</Label>
+                    </div>
+                    <div 
+                      className="border rounded-xl overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                      onClick={() => setIsPhotoViewerOpen(true)}
                     >
-                      <ExternalLink className="w-3 h-3 mr-1" /> Open Full View
-                    </Button>
+                      <img 
+                        src={selectedCustomer.prescriptionPhotoPath} 
+                        alt="Prescription" 
+                        className="w-full h-auto max-h-[300px] object-contain bg-muted/50" 
+                      />
+                    </div>
                   </div>
-                  <div 
-                    className="border rounded-xl overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                    onClick={() => window.open(selectedCustomer.prescriptionPhotoPath, '_blank')}
-                  >
-                    <img 
-                      src={selectedCustomer.prescriptionPhotoPath} 
-                      alt="Prescription" 
-                      className="w-full h-auto max-h-[300px] object-contain bg-muted/50" 
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
-              <DialogFooter className="flex-row justify-between sm:justify-between items-center gap-4">
-                <Button 
-                  variant="outline" 
-                  className="text-destructive hover:text-destructive" 
-                  onClick={() => handleDelete(selectedCustomer.id)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" /> Delete Record
-                </Button>
-                <Button onClick={() => setSelectedCustomer(null)}>Close</Button>
-              </DialogFooter>
-            </div>
+                <DialogFooter className="flex-row justify-between sm:justify-between items-center gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="text-destructive hover:text-destructive" 
+                    onClick={() => handleDelete(selectedCustomer.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete Record
+                  </Button>
+                  <Button onClick={() => setSelectedCustomer(null)}>Close</Button>
+                </DialogFooter>
+              </div>
+            )
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Prescription Photo Viewer Modal */}
+      <Dialog open={isPhotoViewerOpen} onOpenChange={setIsPhotoViewerOpen}>
+        <DialogContent className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-2 right-2 text-white hover:bg-white/20 z-10"
+              onClick={() => setIsPhotoViewerOpen(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+            {selectedCustomer?.prescriptionPhotoPath && (
+              <img 
+                src={selectedCustomer.prescriptionPhotoPath} 
+                alt="Prescription Full View" 
+                className="max-w-full max-h-[90vh] object-contain rounded-md"
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

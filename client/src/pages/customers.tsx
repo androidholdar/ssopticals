@@ -269,8 +269,7 @@ export default function CustomersPage() {
         description: "Please attach the downloaded JPG in WhatsApp." 
       });
       
-      // Open WhatsApp to let them pick a contact
-      window.open("https://wa.me/", "_blank");
+      // Removed automatic window.open for WhatsApp to avoid "Invalid chat link" error
     } catch (error) {
       console.error('Share error:', error);
       toast({ title: "Share Failed", description: "Could not generate profile image.", variant: "destructive" });

@@ -600,10 +600,10 @@ export default function CustomersPage() {
                 <div key={field.id} className={cn(
                   field.fieldKey === 'name' || field.fieldKey === 'address' || field.fieldKey === 'notes' ? "col-span-2" : "col-span-2 sm:col-span-1"
                 )}>
-                  {renderField(field.fieldKey, field.label)}
+                  {renderField(field.fieldKey, field.label, false)}
                 </div>
               ))}
-              
+
               <div className="col-span-2 space-y-2">
                 <Label>Prescription Photo</Label>
                 <div className="flex items-center gap-4">
@@ -612,15 +612,28 @@ export default function CustomersPage() {
                     className="flex-1 border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
                   >
                     {newCustomer.prescriptionPhotoPath ? (
-                      <img 
-                        src={newCustomer.prescriptionPhotoPath} 
-                        alt="Prescription" 
-                        className="max-h-32 object-contain rounded-md" 
-                      />
+                      <div className="relative">
+                        <img 
+                          src={newCustomer.prescriptionPhotoPath} 
+                          alt="Prescription" 
+                          className="max-h-32 object-contain rounded-md" 
+                        />
+                        <Button 
+                          size="icon" 
+                          variant="destructive" 
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNewCustomer({ ...newCustomer, prescriptionPhotoPath: "" });
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
                     ) : (
                       <>
-                        <Camera className="w-8 h-8 text-muted-foreground mb-2" />
-                        <span className="text-sm text-muted-foreground">Select Photo</span>
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Attach Prescription</span>
                       </>
                     )}
                   </div>
@@ -865,8 +878,7 @@ export default function CustomersPage() {
                     </div>
                   )}
                 </div>
-              </div>
-                <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
                   <div className="flex gap-2 w-full sm:w-auto">
                     <Button 
                       type="button"
@@ -891,6 +903,9 @@ export default function CustomersPage() {
                     </Button>
                   </div>
                   <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setSelectedCustomer(null)}>Close</Button>
+                </DialogFooter>
+              </div>
+            )
           )}
         </DialogContent>
       </Dialog>

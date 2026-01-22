@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -849,6 +850,9 @@ export default function CustomersPage() {
       {/* Photo Viewer Dialog */}
       <Dialog open={isPhotoViewerOpen} onOpenChange={setIsPhotoViewerOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+          <VisuallyHidden>
+            <DialogTitle>Prescription Photo Viewer</DialogTitle>
+          </VisuallyHidden>
           <div className="relative w-full h-full flex flex-col">
             <div className="absolute top-4 right-4 z-50 flex gap-2">
               <Button 

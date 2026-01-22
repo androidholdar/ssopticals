@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2 } from "lucide-react";
+import html2canvas from "html2canvas";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Download } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -198,28 +199,71 @@ export default function CustomersPage() {
     }
   };
 
-  const handleWhatsAppShare = (customer: any) => {
-    if (!customer.mobile) {
-      toast({
-        title: "No Mobile Number",
-        description: "This customer doesn't have a mobile number saved.",
-        variant: "destructive"
+  const handleWhatsAppShare = async (customer: any) => {
+    const profileElement = document.getElementById('customer-profile-content');
+    if (!profileElement) return;
+
+    try {
+      toast({ title: "Generating Image...", description: "Preparing profile for sharing." });
+      
+      const canvas = await html2canvas(profileElement, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        onclone: (clonedDoc) => {
+          const el = clonedDoc.getElementById('customer-profile-content');
+          if (el) el.style.padding = '20px';
+        }
       });
-      return;
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      
+      // Since web browsers cannot directly share images to WhatsApp via URL easily without a server,
+      // we provide a download then share flow or instructions.
+      // For mobile devices, we can use the Web Share API if supported.
+      
+      if (navigator.share) {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `profile_${customer.name}.jpg`, { type: "image/jpeg" });
+        
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Customer Profile',
+            text: `Profile of ${customer.name} - Shared from OptiFlow`,
+          });
+          toast({ title: "Shared successfully!" });
+          return;
+        } catch (err) {
+          console.error('Share error:', err);
+        }
+      }
+
+      // Fallback: Download the image and open WhatsApp
+      const link = document.createElement('a');
+      link.download = `profile_${customer.name}.jpg`;
+      link.href = dataUrl;
+      link.click();
+
+      const message = `*Customer Profile - OptiFlow*\n\n` +
+        `*Name:* ${customer.name}\n` +
+        `*New Power:*\n` +
+        `R: SPH: ${customer.newPowerRightSph || "-"}, CYL: ${customer.newPowerRightCyl || "-"}, AXIS: ${customer.newPowerRightAxis || "-"}\n` +
+        `L: SPH: ${customer.newPowerLeftSph || "-"}, CYL: ${customer.newPowerLeftCyl || "-"}, AXIS: ${customer.newPowerLeftAxis || "-"}`;
+
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + "\n\n(Profile image downloaded to your device)")}`;
+      window.open(whatsappUrl, "_blank");
+      
+      toast({ 
+        title: "Profile Ready", 
+        description: "Image downloaded. You can now attach it in WhatsApp." 
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+      toast({ title: "Share Failed", description: "Could not generate profile image.", variant: "destructive" });
     }
-
-    const message = `*Customer Profile - OptiFlow*\n\n` +
-      `*Name:* ${customer.name}\n` +
-      `*Mobile:* ${customer.mobile}\n` +
-      (customer.address ? `*Address:* ${customer.address}\n` : "") +
-      (customer.age ? `*Age:* ${customer.age}\n` : "") +
-      `\n*New Power:*\n` +
-      `R: SPH: ${customer.newPowerRightSph || "-"}, CYL: ${customer.newPowerRightCyl || "-"}, AXIS: ${customer.newPowerRightAxis || "-"}\n` +
-      `L: SPH: ${customer.newPowerLeftSph || "-"}, CYL: ${customer.newPowerLeftCyl || "-"}, AXIS: ${customer.newPowerLeftAxis || "-"}\n` +
-      (customer.notes ? `\n*Notes:* ${customer.notes}` : "");
-
-    const whatsappUrl = `https://wa.me/91${customer.mobile}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
   };
 
   const renderField = (key: string, label: string, isEdit: boolean = false) => {
@@ -779,7 +823,7 @@ export default function CustomersPage() {
                 </DialogFooter>
               </form>
             ) : (
-              <div className="space-y-6 pt-4">
+              <div id="customer-profile-content" className="space-y-6 pt-4 bg-background">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Date</Label>

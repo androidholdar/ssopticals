@@ -258,11 +258,13 @@ export default function CustomersPage() {
       }
 
       // Fallback: Download the image
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
       const link = document.createElement('a');
       link.download = `profile_${customer.name}.jpg`;
-      link.href = URL.createObjectURL(blob);
+      link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
 
       toast({ 
         title: "Profile Image Downloaded", 

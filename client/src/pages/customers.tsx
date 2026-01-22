@@ -859,11 +859,21 @@ export default function CustomersPage() {
                   variant="outline" 
                   size="sm" 
                   className="bg-transparent border-white/20 text-white hover:bg-white/10"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = selectedCustomer.prescriptionPhotoPath;
-                    link.download = `prescription_${selectedCustomer.name}.jpg`;
-                    link.click();
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(selectedCustomer.prescriptionPhotoPath);
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `prescription_${selectedCustomer.name}.jpg`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+                    } catch (error) {
+                      toast({ title: "Download Failed", variant: "destructive" });
+                    }
                   }}
                 >
                   <Upload className="w-4 h-4 mr-2" /> Download

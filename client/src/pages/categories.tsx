@@ -140,6 +140,42 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleAddType = () => {
+    setEditingType(null);
+    setIsTypeDialogOpen(true);
+  };
+
+  const handleEditType = (type: { id: number; name: string }) => {
+    setEditingType(type);
+    setIsTypeDialogOpen(true);
+  };
+
+  const handleTypeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = (e.target as any).elements.name.value;
+    try {
+      if (editingType) {
+        await fetch(`/api/category-types/${editingType.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+      } else {
+        await fetch('/api/category-types', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+      }
+      setIsTypeDialogOpen(false);
+      setEditingType(null);
+      toast({ title: "Success", description: "Category type saved." });
+      // Refresh types logic would go here
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save category type.", variant: "destructive" });
+    }
+  };
+
   if (isLoading) return <div className="p-8 text-center">Loading lens...</div>;
 
   return (
@@ -149,9 +185,14 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-display font-bold">Lens</h1>
           <p className="text-muted-foreground">Manage lens categories and pricing.</p>
         </div>
-        <Button onClick={() => handleAdd(currentId)} className="shadow-lg shadow-primary/20">
-          <Plus className="w-4 h-4 mr-2" /> New {currentId ? 'Sub-category' : 'Root Category'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleAddType}>
+            Manage Types
+          </Button>
+          <Button onClick={() => handleAdd(currentId)} className="shadow-lg shadow-primary/20">
+            <Plus className="w-4 h-4 mr-2" /> New {currentId ? 'Sub-category' : 'Root Category'}
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
@@ -386,6 +427,30 @@ export default function CategoriesPage() {
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Type Manager Dialog */}
+      <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>{editingType ? 'Edit Type' : 'New Category Type'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleTypeSubmit} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Type Name</Label>
+              <Input 
+                name="name"
+                defaultValue={editingType?.name || ''} 
+                placeholder="e.g. FRAME, ACCESSORY"
+                required 
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsTypeDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -151,7 +151,6 @@ export default function CustomersPage() {
         age: updates.age ? parseInt(updates.age) : undefined,
       });
       setIsEditMode(false);
-      toast({ title: "Success", description: "Customer record updated." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to update customer.", variant: "destructive" });
     }
@@ -527,7 +526,6 @@ export default function CustomersPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 pt-4">
             <div className="grid grid-cols-2 gap-4">
-              {/* Always show Date */}
               <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label>Date</Label>
                 <div className="relative">
@@ -542,7 +540,6 @@ export default function CustomersPage() {
                 </div>
               </div>
 
-              {/* Dynamic Fields from Preset */}
               {fields.map(field => (
                 <div key={field.id} className={cn(
                   field.fieldKey === 'name' || field.fieldKey === 'address' || field.fieldKey === 'notes' ? "col-span-2" : "col-span-2 sm:col-span-1"
@@ -551,7 +548,6 @@ export default function CustomersPage() {
                 </div>
               ))}
               
-              {/* Photo Upload */}
               <div className="col-span-2 space-y-2">
                 <Label>Prescription Photo</Label>
                 <div className="flex items-center gap-4">
@@ -614,9 +610,14 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <DialogTitle>{isEditMode ? "Edit Customer" : "Customer Details"}</DialogTitle>
               {!isEditMode && (
-                <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}>
-                  <Edit2 className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}>
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedCustomer.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
               )}
             </div>
           </DialogHeader>
@@ -700,224 +701,174 @@ export default function CustomersPage() {
                       onChange={(e) => handleFileChange(e, true)}
                     />
                   </div>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          ref={editFileInputRef}
-                          onChange={(e) => handleFileChange(e, true)}
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsEditMode(false)}>Cancel</Button>
                   <Button type="submit" disabled={updateMutation.isPending || uploadMutation.isPending}>
-                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                    {updateMutation.isPending ? "Updating..." : "Update Record"}
                   </Button>
                 </DialogFooter>
               </form>
             ) : (
               <div className="space-y-6 pt-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <User className="w-8 h-8" />
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">Date</Label>
+                    <p className="text-lg font-medium">{format(new Date(selectedCustomer.date), 'dd MMM yyyy')}</p>
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
-                    <p className="text-muted-foreground">{format(new Date(selectedCustomer.date), 'MMMM d, yyyy')}</p>
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">Name</Label>
+                    <p className="text-lg font-medium">{selectedCustomer.name}</p>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
                   {selectedCustomer.mobile && (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Mobile Number</Label>
-                      <div className="flex items-center gap-2 font-medium">
-                        <Phone className="w-4 h-4 text-primary" />
-                        {selectedCustomer.mobile}
-                      </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Mobile</Label>
+                      <p className="text-lg font-medium">{selectedCustomer.mobile}</p>
                     </div>
                   )}
                   {selectedCustomer.age && (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Age</Label>
-                      <div className="font-medium">{selectedCustomer.age} years</div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Age</Label>
+                      <p className="text-lg font-medium">{selectedCustomer.age}</p>
                     </div>
                   )}
                   {selectedCustomer.address && (
-                    <div className="space-y-1 col-span-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Address</Label>
-                      <div className="flex items-start gap-2 font-medium">
-                        <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
-                        {selectedCustomer.address}
-                      </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Address</Label>
+                      <p className="text-lg font-medium">{selectedCustomer.address}</p>
                     </div>
                   )}
-                  {(selectedCustomer.newPowerRightSph || selectedCustomer.newPowerRightCyl || selectedCustomer.newPowerRightAxis || selectedCustomer.newPowerLeftSph || selectedCustomer.newPowerLeftCyl || selectedCustomer.newPowerLeftAxis) && (
-                    <div className="space-y-4 col-span-2 border-t pt-2">
-                      <Label className="text-xs text-primary uppercase tracking-wider font-semibold">New Power</Label>
-                      <div className="space-y-2">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Right Eye (R)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-primary/5 p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
-                            <div className="font-bold">{selectedCustomer.newPowerRightSph || "-"}</div>
-                          </div>
-                          <div className="bg-primary/5 p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
-                            <div className="font-bold">{selectedCustomer.newPowerRightCyl || "-"}</div>
-                          </div>
-                          <div className="bg-primary/5 p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
-                            <div className="font-bold">{selectedCustomer.newPowerRightAxis || "-"}</div>
-                          </div>
+                  
+                  <div className="col-span-2 border-t pt-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-primary mb-4">New Power</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/30 p-3 rounded-lg">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Right Eye (R)</Label>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.newPowerRightSph || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.newPowerRightCyl || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.newPowerRightAxis || '-'}</span></div>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Left Eye (L)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-primary/5 p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
-                            <div className="font-bold">{selectedCustomer.newPowerLeftSph || "-"}</div>
-                          </div>
-                          <div className="bg-primary/5 p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
-                            <div className="font-bold">{selectedCustomer.newPowerLeftCyl || "-"}</div>
-                          </div>
-                          <div className="bg-primary/5 p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
-                            <div className="font-bold">{selectedCustomer.newPowerLeftAxis || "-"}</div>
-                          </div>
+                      <div className="bg-muted/30 p-3 rounded-lg">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Left Eye (L)</Label>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.newPowerLeftSph || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.newPowerLeftCyl || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.newPowerLeftAxis || '-'}</span></div>
                         </div>
                       </div>
                     </div>
-                  )}
-                  {(selectedCustomer.oldPowerRightSph || selectedCustomer.oldPowerRightCyl || selectedCustomer.oldPowerRightAxis || selectedCustomer.oldPowerLeftSph || selectedCustomer.oldPowerLeftCyl || selectedCustomer.oldPowerLeftAxis) && (
-                    <div className="space-y-4 col-span-2 border-t pt-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Old Power</Label>
-                      <div className="space-y-2">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Right Eye (R)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-muted p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
-                            <div className="font-bold">{selectedCustomer.oldPowerRightSph || "-"}</div>
-                          </div>
-                          <div className="bg-muted p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
-                            <div className="font-bold">{selectedCustomer.oldPowerRightCyl || "-"}</div>
-                          </div>
-                          <div className="bg-muted p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
-                            <div className="font-bold">{selectedCustomer.oldPowerRightAxis || "-"}</div>
-                          </div>
+                  </div>
+
+                  <div className="col-span-2 border-t pt-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Old Power</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/30 p-3 rounded-lg">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Right Eye (R)</Label>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.oldPowerRightSph || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.oldPowerRightCyl || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.oldPowerRightAxis || '-'}</span></div>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Left Eye (L)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-muted p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">SPH</div>
-                            <div className="font-bold">{selectedCustomer.oldPowerLeftSph || "-"}</div>
-                          </div>
-                          <div className="bg-muted p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">CYL</div>
-                            <div className="font-bold">{selectedCustomer.oldPowerLeftCyl || "-"}</div>
-                          </div>
-                          <div className="bg-muted p-2 rounded text-center">
-                            <div className="text-[10px] text-muted-foreground uppercase">AXIS</div>
-                            <div className="font-bold">{selectedCustomer.oldPowerLeftAxis || "-"}</div>
-                          </div>
+                      <div className="bg-muted/30 p-3 rounded-lg">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Left Eye (L)</Label>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.oldPowerLeftSph || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.oldPowerLeftCyl || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.oldPowerLeftAxis || '-'}</span></div>
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
+
                   {selectedCustomer.notes && (
-                    <div className="space-y-1 col-span-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notes</Label>
-                      <div className="font-medium bg-muted p-3 rounded-lg text-sm">{selectedCustomer.notes}</div>
+                    <div className="col-span-2 border-t pt-4">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Notes</Label>
+                      <p className="whitespace-pre-wrap mt-1">{selectedCustomer.notes}</p>
+                    </div>
+                  )}
+                  
+                  {selectedCustomer.prescriptionPhotoPath && (
+                    <div className="col-span-2 border-t pt-4">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase block mb-2">Prescription Photo</Label>
+                      <div 
+                        className="relative group cursor-zoom-in rounded-xl overflow-hidden border bg-muted"
+                        onClick={() => setIsPhotoViewerOpen(true)}
+                      >
+                        <img 
+                          src={selectedCustomer.prescriptionPhotoPath} 
+                          alt="Prescription" 
+                          className="w-full h-auto max-h-[300px] object-contain transition-transform group-hover:scale-[1.02]" 
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {selectedCustomer.prescriptionPhotoPath && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Prescription Photo</Label>
-                    </div>
-                    <div 
-                      className="border rounded-xl overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                      onClick={() => setIsPhotoViewerOpen(true)}
-                    >
-                      <img 
-                        src={selectedCustomer.prescriptionPhotoPath} 
-                        alt="Prescription" 
-                        className="w-full h-auto max-h-[300px] object-contain bg-muted/50" 
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <DialogFooter className="flex-row justify-between sm:justify-between items-center gap-4">
-                  <Button 
-                    variant="outline" 
-                    className="text-destructive hover:text-destructive" 
-                    onClick={() => handleDelete(selectedCustomer.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" /> Delete Record
-                  </Button>
-                  <Button onClick={() => setSelectedCustomer(null)}>Close</Button>
-                </DialogFooter>
               </div>
             )
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Prescription Photo Viewer Modal */}
+      {/* Photo Viewer Dialog */}
       <Dialog open={isPhotoViewerOpen} onOpenChange={setIsPhotoViewerOpen}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 bg-black/95 border-none rounded-none flex flex-col">
-          <div className="relative flex-1 flex items-center justify-center overflow-hidden">
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+          <div className="relative w-full h-full flex flex-col">
             <div className="absolute top-4 right-4 z-50 flex gap-2">
               <Button 
-                variant="ghost" 
                 size="icon" 
-                className="bg-black/50 text-white hover:bg-white/20 rounded-full"
+                variant="secondary" 
+                className="rounded-full bg-white/10 hover:bg-white/20 border-none text-white"
                 onClick={() => setIsPhotoViewerOpen(false)}
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </Button>
             </div>
             
-            {selectedCustomer?.prescriptionPhotoPath && (
-              <QuickPinchZoom
-                onUpdate={({ x, y, scale }) => {
-                  const el = document.getElementById('zoom-img');
-                  if (el) {
-                    el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
-                  }
-                }}
-                wheelScaleFactor={0.5}
-                draggableUnZoomed={false}
-                inertia={true}
-              >
-                <div className="w-full h-full flex items-center justify-center">
-                  <img 
-                    id="zoom-img"
-                    src={selectedCustomer.prescriptionPhotoPath} 
-                    alt="Prescription Full View" 
-                    className="max-w-full max-h-full object-contain will-change-transform"
-                    style={{ transition: 'transform 0.1s ease-out' }}
-                  />
-                </div>
+            <div className="flex-1 flex items-center justify-center p-4">
+              <QuickPinchZoom onUpdate={({ x, y, scale }) => {
+                const img = document.getElementById('zoom-img');
+                if (img) img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+              }}>
+                <img 
+                  id="zoom-img"
+                  src={selectedCustomer?.prescriptionPhotoPath} 
+                  alt="Full Prescription" 
+                  className="max-w-full max-h-full object-contain"
+                />
               </QuickPinchZoom>
-            )}
-
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white text-xs border border-white/10 flex items-center gap-2">
-              <Maximize2 className="w-3 h-3" />
-              Pinch to zoom in/out
+            </div>
+            
+            <div className="bg-black/50 backdrop-blur-md p-4 flex items-center justify-between text-white border-t border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold leading-none">{selectedCustomer?.name}</p>
+                  <p className="text-xs text-white/60 mt-1">{format(new Date(selectedCustomer?.date || new Date()), 'dd MMM yyyy')}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = selectedCustomer.prescriptionPhotoPath;
+                    link.download = `prescription_${selectedCustomer.name}.jpg`;
+                    link.click();
+                  }}
+                >
+                  <Upload className="w-4 h-4 mr-2" /> Download
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -928,41 +879,49 @@ export default function CustomersPage() {
 
 function CustomerCard({ customer, onClick }: { customer: any, onClick: () => void }) {
   return (
-    <Card onClick={onClick} className="hover:shadow-md transition-shadow cursor-pointer group">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{customer.name}</h3>
-            <p className="text-xs text-muted-foreground">{format(new Date(customer.date), 'MMM d, yyyy')}</p>
+    <Card 
+      className="group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50" 
+      onClick={onClick}
+    >
+      <CardContent className="p-0">
+        <div className="flex items-center gap-4 p-4">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+            <User className="w-6 h-6" />
           </div>
-          <div className="flex flex-col gap-1 items-end">
-            {customer.lensPowerCurrent && (
-              <span className="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded flex items-center gap-1">
-                <span className="opacity-70">C:</span> {customer.lensPowerCurrent}
-              </span>
-            )}
-            {customer.lensPowerPrevious && (
-              <span className="text-[10px] font-mono bg-secondary px-2 py-0.5 rounded flex items-center gap-1">
-                <span className="opacity-70">P:</span> {customer.lensPowerPrevious}
-              </span>
-            )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-bold text-lg truncate leading-tight">{customer.name}</h4>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{format(new Date(customer.date), 'dd MMM')}</span>
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Phone className="w-3 h-3" />
+                <span>{customer.mobile || 'No mobile'}</span>
+              </div>
+              {customer.age && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Users className="w-3 h-3" />
+                  <span>Age {customer.age}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        <div className="space-y-1 text-sm text-muted-foreground">
-          {customer.mobile && (
-            <div className="flex items-center gap-2">
-              <Phone className="w-3.5 h-3.5" />
-              {customer.mobile}
-            </div>
-          )}
-          {customer.address && (
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5" />
-              <span className="truncate">{customer.address}</span>
-            </div>
-          )}
+        <div className="px-4 pb-4 grid grid-cols-2 gap-2 mt-1">
+          <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+            <span className="text-[9px] font-bold text-primary uppercase">R</span>
+            <span className="text-xs font-medium">{customer.newPowerRightSph || '0.00'}</span>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+            <span className="text-[9px] font-bold text-primary uppercase">L</span>
+            <span className="text-xs font-medium">{customer.newPowerLeftSph || '0.00'}</span>
+          </div>
         </div>
+
+        {customer.prescriptionPhotoPath && (
+          <div className="h-1 bg-primary/20 group-hover:bg-primary transition-colors" />
+        )}
       </CardContent>
     </Card>
   );

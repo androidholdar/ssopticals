@@ -47,6 +47,8 @@ export default function CategoriesPage() {
   const [search, setSearch] = useState("");
   const [editingNode, setEditingNode] = useState<Partial<Category> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
+  const [editingType, setEditingType] = useState<{ id: number; name: string } | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const [longPressedId, setLongPressedId] = useState<number | null>(null);
@@ -268,8 +270,6 @@ export default function CategoriesPage() {
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
                           <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
                           {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>}
-                          {node.sph && <span>SPH: {node.sph}</span>}
-                          {node.cyl && <span>CYL: {node.cyl}</span>}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Category</span>
@@ -358,25 +358,6 @@ export default function CategoriesPage() {
                         onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
                       />
                     </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>SPH</Label>
-                    <Input 
-                      placeholder="e.g. -2.00 to +2.00"
-                      value={editingNode?.sph || ''} 
-                      onChange={e => setEditingNode(prev => ({ ...prev, sph: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CYL</Label>
-                    <Input 
-                      placeholder="e.g. up to -2.00"
-                      value={editingNode?.cyl || ''} 
-                      onChange={e => setEditingNode(prev => ({ ...prev, cyl: e.target.value }))}
-                    />
                   </div>
                 </div>
               </>

@@ -84,6 +84,9 @@ export default function CustomersPage() {
         setNewCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
       }
       toast({ title: "Photo Uploaded", description: "Prescription attached successfully." });
+      
+      // Reset input value to allow selecting the same file again if needed
+      e.target.value = '';
     } catch (error) {
       toast({ title: "Upload Failed", variant: "destructive" });
     }
@@ -565,18 +568,32 @@ export default function CustomersPage() {
                     ) : (
                       <>
                         <Camera className="w-8 h-8 text-muted-foreground mb-2" />
-                        <span className="text-sm text-muted-foreground">Click to upload or take photo</span>
+                        <span className="text-sm text-muted-foreground">Select Photo</span>
                       </>
                     )}
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      ref={fileInputRef}
-                      onChange={(e) => handleFileChange(e, false)}
-                    />
                   </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-12 w-12"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.setAttribute('capture', 'environment');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                  >
+                    <Camera className="w-5 h-5" />
+                  </Button>
                 </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={(e) => handleFileChange(e, false)}
+                />
               </div>
             </div>
 
@@ -656,9 +673,33 @@ export default function CustomersPage() {
                         ) : (
                           <>
                             <Camera className="w-8 h-8 text-muted-foreground mb-2" />
-                            <span className="text-sm text-muted-foreground">Click to upload or take photo</span>
+                            <span className="text-sm text-muted-foreground">Select Photo</span>
                           </>
                         )}
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-12 w-12"
+                        onClick={() => {
+                          if (editFileInputRef.current) {
+                            editFileInputRef.current.setAttribute('capture', 'environment');
+                            editFileInputRef.current.click();
+                          }
+                        }}
+                      >
+                        <Camera className="w-5 h-5" />
+                      </Button>
+                    </div>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      ref={editFileInputRef}
+                      onChange={(e) => handleFileChange(e, true)}
+                    />
+                  </div>
                         <input 
                           type="file" 
                           accept="image/*" 

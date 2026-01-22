@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -196,6 +196,30 @@ export default function CustomersPage() {
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete customer.", variant: "destructive" });
     }
+  };
+
+  const handleWhatsAppShare = (customer: any) => {
+    if (!customer.mobile) {
+      toast({
+        title: "No Mobile Number",
+        description: "This customer doesn't have a mobile number saved.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const message = `*Customer Profile - OptiFlow*\n\n` +
+      `*Name:* ${customer.name}\n` +
+      `*Mobile:* ${customer.mobile}\n` +
+      (customer.address ? `*Address:* ${customer.address}\n` : "") +
+      (customer.age ? `*Age:* ${customer.age}\n` : "") +
+      `\n*New Power:*\n` +
+      `R: SPH: ${customer.newPowerRightSph || "-"}, CYL: ${customer.newPowerRightCyl || "-"}, AXIS: ${customer.newPowerRightAxis || "-"}\n` +
+      `L: SPH: ${customer.newPowerLeftSph || "-"}, CYL: ${customer.newPowerLeftCyl || "-"}, AXIS: ${customer.newPowerLeftAxis || "-"}\n` +
+      (customer.notes ? `\n*Notes:* ${customer.notes}` : "");
+
+    const whatsappUrl = `https://wa.me/91${customer.mobile}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
   };
 
   const renderField = (key: string, label: string, isEdit: boolean = false) => {
@@ -842,9 +866,32 @@ export default function CustomersPage() {
                   )}
                 </div>
               </div>
-            )
-          )}
-        </DialogContent>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="flex-1 sm:flex-none border-primary/20 hover:bg-primary/5 text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleWhatsAppShare(selectedCustomer);
+                      }}
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share WhatsApp
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="flex-1 sm:flex-none"
+                      onClick={() => setIsEditMode(true)}
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Record
+                    </Button>
+                  </div>
+                  <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setSelectedCustomer(null)}>Close</Button>
+                </DialogFooter>
       </Dialog>
 
       {/* Photo Viewer Dialog */}

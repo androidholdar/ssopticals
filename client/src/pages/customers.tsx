@@ -208,31 +208,47 @@ export default function CustomersPage() {
       
       const canvas = await html2canvas(profileElement, {
         backgroundColor: "#ffffff",
-        scale: 2,
+        scale: 3, // Higher scale for better quality
         logging: false,
         useCORS: true,
+        windowWidth: profileElement.scrollWidth,
+        windowHeight: profileElement.scrollHeight,
         onclone: (clonedDoc) => {
           const el = clonedDoc.getElementById('customer-profile-content');
-          if (el) el.style.padding = '20px';
+          if (el) {
+            el.style.padding = '40px';
+            el.style.width = '600px'; // Fixed width for consistent look
+            el.style.height = 'auto';
+            el.style.borderRadius = '0px';
+            
+            // Ensure all labels and text are visible and styled nicely for the image
+            const labels = el.querySelectorAll('label');
+            labels.forEach(l => {
+              (l as HTMLElement).style.color = '#666';
+              (l as HTMLElement).style.fontSize = '12px';
+            });
+            
+            const headings = el.querySelectorAll('h3');
+            headings.forEach(h => {
+              (h as HTMLElement).style.color = '#000';
+              (h as HTMLElement).style.borderBottom = '1px solid #eee';
+              (h as HTMLElement).style.paddingBottom = '8px';
+            });
+          }
         }
       });
 
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+      if (!blob) throw new Error("Failed to create blob");
+
+      const file = new File([blob], `profile_${customer.name}.jpg`, { type: "image/jpeg" });
       
-      // Since web browsers cannot directly share images to WhatsApp via URL easily without a server,
-      // we provide a download then share flow or instructions.
-      // For mobile devices, we can use the Web Share API if supported.
-      
-      if (navigator.share) {
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `profile_${customer.name}.jpg`, { type: "image/jpeg" });
-        
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
             title: 'Customer Profile',
-            text: `Profile of ${customer.name} - Shared from OptiFlow`,
+            text: `Profile of ${customer.name}`,
           });
           toast({ title: "Shared successfully!" });
           return;
@@ -241,25 +257,20 @@ export default function CustomersPage() {
         }
       }
 
-      // Fallback: Download the image and open WhatsApp
+      // Fallback: Download the image
       const link = document.createElement('a');
       link.download = `profile_${customer.name}.jpg`;
-      link.href = dataUrl;
+      link.href = URL.createObjectURL(blob);
       link.click();
+      URL.revokeObjectURL(link.href);
 
-      const message = `*Customer Profile - OptiFlow*\n\n` +
-        `*Name:* ${customer.name}\n` +
-        `*New Power:*\n` +
-        `R: SPH: ${customer.newPowerRightSph || "-"}, CYL: ${customer.newPowerRightCyl || "-"}, AXIS: ${customer.newPowerRightAxis || "-"}\n` +
-        `L: SPH: ${customer.newPowerLeftSph || "-"}, CYL: ${customer.newPowerLeftCyl || "-"}, AXIS: ${customer.newPowerLeftAxis || "-"}`;
-
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + "\n\n(Profile image downloaded to your device)")}`;
-      window.open(whatsappUrl, "_blank");
-      
       toast({ 
-        title: "Profile Ready", 
-        description: "Image downloaded. You can now attach it in WhatsApp." 
+        title: "Profile Image Downloaded", 
+        description: "Please attach the downloaded JPG in WhatsApp." 
       });
+      
+      // Open WhatsApp to let them pick a contact
+      window.open("https://wa.me/", "_blank");
     } catch (error) {
       console.error('Share error:', error);
       toast({ title: "Share Failed", description: "Could not generate profile image.", variant: "destructive" });

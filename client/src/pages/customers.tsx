@@ -102,6 +102,21 @@ export default function CustomersPage() {
           variant: "destructive" 
         });
       }
+
+      // Check for duplicate locally first for better UX
+      const isDuplicate = customers.some(c => 
+        c.name.toLowerCase() === newCustomer.name.toLowerCase() && 
+        c.mobile === newCustomer.mobile
+      );
+
+      if (isDuplicate) {
+        return toast({
+          title: "Duplicate Entry",
+          description: "A customer with this name and mobile number already exists.",
+          variant: "destructive"
+        });
+      }
+
       await createMutation.mutateAsync({
         ...newCustomer,
         age: newCustomer.age ? parseInt(newCustomer.age) : undefined,
@@ -144,6 +159,22 @@ export default function CustomersPage() {
           variant: "destructive" 
         });
       }
+
+      // Check for duplicate (excluding the current customer being edited)
+      const isDuplicate = customers.some(c => 
+        c.id !== selectedCustomer.id &&
+        c.name.toLowerCase() === selectedCustomer.name.toLowerCase() && 
+        c.mobile === selectedCustomer.mobile
+      );
+
+      if (isDuplicate) {
+        return toast({
+          title: "Duplicate Entry",
+          description: "Another customer with this name and mobile number already exists.",
+          variant: "destructive"
+        });
+      }
+
       const { id, createdAt, ...updates } = selectedCustomer;
       await updateMutation.mutateAsync({
         id,

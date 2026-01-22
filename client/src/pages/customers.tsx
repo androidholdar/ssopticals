@@ -891,7 +891,8 @@ export default function CustomersPage() {
                     </Button>
                   </div>
                   <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setSelectedCustomer(null)}>Close</Button>
-                </DialogFooter>
+          )}
+        </DialogContent>
       </Dialog>
 
       {/* Photo Viewer Dialog */}

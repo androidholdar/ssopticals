@@ -260,15 +260,20 @@ export default function CustomersPage() {
       // Fallback: Download the image
       const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
       const link = document.createElement('a');
-      link.download = `profile_${customer.name}.jpg`;
-      link.href = dataUrl;
+      link.setAttribute('href', dataUrl);
+      link.setAttribute('download', `profile_${customer.name}.jpg`);
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      // Give the browser a moment to process the click before removing the element
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
 
       toast({ 
-        title: "Profile Image Downloaded", 
-        description: "Please attach the downloaded JPG in WhatsApp." 
+        title: "Profile Image Ready", 
+        description: "Image should be downloading now. Please attach it in WhatsApp." 
       });
       
       // Removed automatic window.open for WhatsApp to avoid "Invalid chat link" error

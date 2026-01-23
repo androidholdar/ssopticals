@@ -7,8 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import html2canvas from "html2canvas";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Download } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -196,90 +195,6 @@ export default function CustomersPage() {
       setSelectedCustomer(null);
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete customer.", variant: "destructive" });
-    }
-  };
-
-  const handleWhatsAppShare = async (customer: any) => {
-    const profileElement = document.getElementById('customer-profile-content');
-    if (!profileElement) return;
-
-    try {
-      toast({ title: "Generating Image...", description: "Preparing profile for sharing." });
-      
-      const canvas = await html2canvas(profileElement, {
-        backgroundColor: "#ffffff",
-        scale: 3, // Higher scale for better quality
-        logging: false,
-        useCORS: true,
-        windowWidth: profileElement.scrollWidth,
-        windowHeight: profileElement.scrollHeight,
-        onclone: (clonedDoc) => {
-          const el = clonedDoc.getElementById('customer-profile-content');
-          if (el) {
-            el.style.padding = '40px';
-            el.style.width = '600px'; // Fixed width for consistent look
-            el.style.height = 'auto';
-            el.style.borderRadius = '0px';
-            
-            // Ensure all labels and text are visible and styled nicely for the image
-            const labels = el.querySelectorAll('label');
-            labels.forEach(l => {
-              (l as HTMLElement).style.color = '#666';
-              (l as HTMLElement).style.fontSize = '12px';
-            });
-            
-            const headings = el.querySelectorAll('h3');
-            headings.forEach(h => {
-              (h as HTMLElement).style.color = '#000';
-              (h as HTMLElement).style.borderBottom = '1px solid #eee';
-              (h as HTMLElement).style.paddingBottom = '8px';
-            });
-          }
-        }
-      });
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
-      if (!blob) throw new Error("Failed to create blob");
-
-      const file = new File([blob], `profile_${customer.name}.jpg`, { type: "image/jpeg" });
-      
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: 'Customer Profile',
-            text: `Profile of ${customer.name}`,
-          });
-          toast({ title: "Shared successfully!" });
-          return;
-        } catch (err) {
-          console.error('Share error:', err);
-        }
-      }
-
-      // Fallback: Download the image
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      const link = document.createElement('a');
-      link.setAttribute('href', dataUrl);
-      link.setAttribute('download', `profile_${customer.name}.jpg`);
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Give the browser a moment to process the click before removing the element
-      setTimeout(() => {
-        document.body.removeChild(link);
-      }, 100);
-
-      toast({ 
-        title: "Profile Image Ready", 
-        description: "Image should be downloading now. Please attach it in WhatsApp." 
-      });
-      
-      // Removed automatic window.open for WhatsApp to avoid "Invalid chat link" error
-    } catch (error) {
-      console.error('Share error:', error);
-      toast({ title: "Share Failed", description: "Could not generate profile image.", variant: "destructive" });
     }
   };
 
@@ -840,7 +755,7 @@ export default function CustomersPage() {
                 </DialogFooter>
               </form>
             ) : (
-              <div id="customer-profile-content" className="space-y-6 pt-4 bg-background">
+              <div className="space-y-6 pt-4">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Date</Label>
@@ -940,29 +855,15 @@ export default function CustomersPage() {
                   )}
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <Button 
-                      type="button"
-                      variant="outline" 
-                      className="flex-1 sm:flex-none border-primary/20 hover:bg-primary/5 text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleWhatsAppShare(selectedCustomer);
-                      }}
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share WhatsApp
-                    </Button>
-                    <Button 
-                      type="button"
-                      variant="outline" 
-                      className="flex-1 sm:flex-none"
-                      onClick={() => setIsEditMode(true)}
-                    >
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      Edit Record
-                    </Button>
-                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full sm:w-auto"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Edit Record
+                  </Button>
                   <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setSelectedCustomer(null)}>Close</Button>
                 </DialogFooter>
               </div>

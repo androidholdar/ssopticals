@@ -51,9 +51,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r flex flex-col hidden md:flex">
         <div className="p-6 border-b">
-          <h1 className="text-2xl font-display font-bold text-primary flex items-center gap-2">
-            <span className="bg-primary text-white rounded-lg p-1">OP</span>
-            OptiFlow
+          <h1 className="text-xl font-display font-bold text-primary leading-tight">
+            S.S. Opticals
+            <span className="block text-xs font-normal text-muted-foreground mt-1">(Narbada eye care)</span>
           </h1>
         </div>
 

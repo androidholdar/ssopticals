@@ -1,8 +1,8 @@
-# Optician Lens Manager
+# S.S. Opticals (Narbada eye care)
 
 ## Overview
 
-A mobile-friendly web application for opticians to manage lens pricing with unlimited nested categories and customer records. The app features dual pricing (retail/wholesale) with password-protected wholesale access, a hierarchical category tree for lens types and power ranges, and customizable customer intake forms with configurable field presets.
+A mobile-friendly web application for S.S. Opticals (Narbada eye care) to manage lens pricing with unlimited nested categories and customer records. The app features dual pricing (retail/wholesale) with password-protected wholesale access, a hierarchical category tree for lens types and power ranges, and customizable customer intake forms with configurable field presets.
 
 ## User Preferences
 

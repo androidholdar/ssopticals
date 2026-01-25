@@ -288,7 +288,7 @@ export default function CustomersPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Right Eye (R)</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
                     <Input 

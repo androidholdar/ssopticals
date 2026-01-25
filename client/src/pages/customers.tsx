@@ -823,7 +823,7 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Date</Label>
-                    <p className="text-lg font-medium">{format(new Date(selectedCustomer.date), 'dd MMM yyyy')}</p>
+                    <p className="text-lg font-medium">{format(new Date(selectedCustomer.date), 'dd/MM/yyyy')}</p>
                   </div>
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Name</Label>
@@ -979,7 +979,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <p className="font-semibold leading-none">{selectedCustomer?.name}</p>
-                  <p className="text-xs text-white/60 mt-1">{format(new Date(selectedCustomer?.date || new Date()), 'dd MMM yyyy')}</p>
+                  <p className="text-xs text-white/60 mt-1">{format(new Date(selectedCustomer?.date || new Date()), 'dd/MM/yyyy')}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -1029,7 +1029,7 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <h4 className="font-bold text-lg truncate leading-tight">{customer.name}</h4>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{format(new Date(customer.date), 'dd MMM')}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{format(new Date(customer.date), 'dd/MM/yyyy')}</span>
             </div>
             <div className="flex items-center gap-3 mt-1">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">

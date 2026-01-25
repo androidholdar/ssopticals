@@ -831,12 +831,17 @@ export default function CustomersPage() {
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Name</Label>
                     <p className="text-lg font-medium">{selectedCustomer.name}</p>
                   </div>
-                  {selectedCustomer.mobile && (
-                    <div className="col-span-2 sm:col-span-1">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Mobile</Label>
-                      <p className="text-lg font-medium">{selectedCustomer.mobile}</p>
-                    </div>
-                  )}
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">Mobile</Label>
+                    {isUnlocked ? (
+                      <p className="text-lg font-medium">{selectedCustomer.mobile || 'No mobile'}</p>
+                    ) : (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Lock className="w-4 h-4" />
+                        <span className="text-lg font-medium tracking-widest">••••••••••</span>
+                      </div>
+                    )}
+                  </div>
                   {selectedCustomer.age && (
                     <div className="col-span-2 sm:col-span-1">
                       <Label className="text-xs font-bold text-muted-foreground uppercase">Age</Label>
@@ -1035,12 +1040,10 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{format(new Date(customer.date), 'dd/MM/yyyy')}</span>
             </div>
             <div className="flex items-center gap-3 mt-1">
-              {isUnlocked && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Phone className="w-3 h-3" />
-                  <span>{customer.mobile || 'No mobile'}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Phone className="w-3 h-3" />
+                <span>{isUnlocked ? (customer.mobile || 'No mobile') : '••••••••••'}</span>
+              </div>
               {customer.age && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="w-3 h-3" />

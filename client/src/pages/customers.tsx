@@ -44,15 +44,19 @@ export default function CustomersPage() {
     newPowerRightSph: "",
     newPowerRightCyl: "",
     newPowerRightAxis: "",
+    newPowerRightAdd: "",
     newPowerLeftSph: "",
     newPowerLeftCyl: "",
     newPowerLeftAxis: "",
+    newPowerLeftAdd: "",
     oldPowerRightSph: "",
     oldPowerRightCyl: "",
     oldPowerRightAxis: "",
+    oldPowerRightAdd: "",
     oldPowerLeftSph: "",
     oldPowerLeftCyl: "",
     oldPowerLeftAxis: "",
+    oldPowerLeftAdd: "",
     notes: "",
     prescriptionPhotoPath: ""
   });
@@ -132,15 +136,19 @@ export default function CustomersPage() {
         newPowerRightSph: "",
         newPowerRightCyl: "",
         newPowerRightAxis: "",
+        newPowerRightAdd: "",
         newPowerLeftSph: "",
         newPowerLeftCyl: "",
         newPowerLeftAxis: "",
+        newPowerLeftAdd: "",
         oldPowerRightSph: "",
         oldPowerRightCyl: "",
         oldPowerRightAxis: "",
+        oldPowerRightAdd: "",
         oldPowerLeftSph: "",
         oldPowerLeftCyl: "",
         oldPowerLeftAxis: "",
+        oldPowerLeftAdd: "",
         notes: "",
         prescriptionPhotoPath: ""
       });
@@ -323,11 +331,25 @@ export default function CustomersPage() {
                       }} 
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.newPowerRightAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
                     <Input 
@@ -370,6 +392,20 @@ export default function CustomersPage() {
                       }} 
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.newPowerLeftAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -382,7 +418,7 @@ export default function CustomersPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Right Eye (R)</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
                     <Input 
@@ -425,11 +461,25 @@ export default function CustomersPage() {
                       }} 
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.oldPowerRightAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
                     <Input 
@@ -468,6 +518,20 @@ export default function CustomersPage() {
                           setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
                         } else {
                           setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.oldPowerLeftAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: e.target.value }));
                         }
                       }} 
                     />
@@ -793,14 +857,16 @@ export default function CustomersPage() {
                           <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.newPowerRightSph || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.newPowerRightCyl || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.newPowerRightAxis || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">Add.</span><span className="font-medium">{selectedCustomer.newPowerRightAdd || '-'}</span></div>
                         </div>
                       </div>
                       <div className="bg-muted/30 p-3 rounded-lg">
                         <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Left Eye (L)</Label>
-                        <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="grid grid-cols-4 gap-2 text-center">
                           <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.newPowerLeftSph || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.newPowerLeftCyl || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.newPowerLeftAxis || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">Add.</span><span className="font-medium">{selectedCustomer.newPowerLeftAdd || '-'}</span></div>
                         </div>
                       </div>
                     </div>
@@ -811,18 +877,20 @@ export default function CustomersPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-muted/30 p-3 rounded-lg">
                         <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Right Eye (R)</Label>
-                        <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="grid grid-cols-4 gap-2 text-center">
                           <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.oldPowerRightSph || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.oldPowerRightCyl || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.oldPowerRightAxis || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">Add.</span><span className="font-medium">{selectedCustomer.oldPowerRightAdd || '-'}</span></div>
                         </div>
                       </div>
                       <div className="bg-muted/30 p-3 rounded-lg">
                         <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Left Eye (L)</Label>
-                        <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="grid grid-cols-4 gap-2 text-center">
                           <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.oldPowerLeftSph || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.oldPowerLeftCyl || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.oldPowerLeftAxis || '-'}</span></div>
+                          <div><span className="text-[10px] text-muted-foreground uppercase block">Add.</span><span className="font-medium">{selectedCustomer.oldPowerLeftAdd || '-'}</span></div>
                         </div>
                       </div>
                     </div>

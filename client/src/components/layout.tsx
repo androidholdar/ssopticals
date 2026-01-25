@@ -87,7 +87,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             <span className="flex items-center gap-2">
               {isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-              {isUnlocked ? "Wholesale Mode" : "Retail Mode"}
+              {isUnlocked ? "Unlocked Mode" : "Locked Mode"}
             </span>
           </button>
         </div>
@@ -104,7 +104,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Unlock Wholesale Mode</DialogTitle>
+            <DialogTitle>Unlock Mode</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <Input 

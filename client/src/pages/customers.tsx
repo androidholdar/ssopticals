@@ -11,6 +11,7 @@ import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, Ma
 import { format, isToday, isYesterday } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useWholesale } from "@/hooks/use-wholesale";
 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +24,8 @@ type GroupedCustomers = {
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
-  const { data: customers = [], isLoading } = useCustomers({ search });
+  const { isUnlocked } = useWholesale();
+  const { data: customers = [], isLoading } = useCustomers({ search: isUnlocked ? search : "" });
   const { data: presets = [] } = usePresets();
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
@@ -1016,6 +1018,7 @@ export default function CustomersPage() {
 }
 
 function CustomerCard({ customer, onClick }: { customer: any, onClick: () => void }) {
+  const { isUnlocked } = useWholesale();
   return (
     <Card 
       className="group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50" 
@@ -1032,10 +1035,12 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{format(new Date(customer.date), 'dd/MM/yyyy')}</span>
             </div>
             <div className="flex items-center gap-3 mt-1">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Phone className="w-3 h-3" />
-                <span>{customer.mobile || 'No mobile'}</span>
-              </div>
+              {isUnlocked && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  <span>{customer.mobile || 'No mobile'}</span>
+                </div>
+              )}
               {customer.age && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="w-3 h-3" />

@@ -1046,17 +1046,6 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
           </div>
         </div>
         
-        <div className="px-4 pb-4 grid grid-cols-2 gap-2 mt-1">
-          <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
-            <span className="text-[9px] font-bold text-primary uppercase">R</span>
-            <span className="text-xs font-medium">{customer.newPowerRightSph || '0.00'}</span>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
-            <span className="text-[9px] font-bold text-primary uppercase">L</span>
-            <span className="text-xs font-medium">{customer.newPowerLeftSph || '0.00'}</span>
-          </div>
-        </div>
-
         {customer.prescriptionPhotoPath && (
           <div className="h-1 bg-primary/20 group-hover:bg-primary transition-colors" />
         )}

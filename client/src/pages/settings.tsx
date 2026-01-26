@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, ShieldCheck, FormInput, Download, Upload, Database } from "lucide-react";
@@ -23,6 +24,10 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
+  const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
+  const [showMasterDialog, setShowMasterDialog] = useState(false);
+  const [masterInput, setMasterInput] = useState("");
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,14 +52,43 @@ export default function SettingsPage() {
     }
   };
 
+  const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (masterPassword !== confirmMasterPassword) {
+      toast({ title: "Master passwords do not match", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await apiRequest("POST", "/api/settings/master-password", { password: masterPassword });
+      toast({ title: "Master Password Set", description: "Security reset protection enabled." });
+      setMasterPassword("");
+      setConfirmMasterPassword("");
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handleResetPassword = async () => {
+    if (settings?.hasMasterPassword) {
+      setShowMasterDialog(true);
+      return;
+    }
+
+    performReset();
+  };
+
+  const performReset = async (mPass?: string) => {
     if (!confirm("Are you sure you want to reset the wholesale password? This will remove password protection from wholesale prices until a new one is set.")) {
       return;
     }
 
     try {
-      await apiRequest("POST", "/api/settings/reset", {});
+      await apiRequest("POST", "/api/settings/reset", { masterPassword: mPass });
       toast({ title: "Password Reset", description: "Wholesale password has been cleared." });
+      setShowMasterDialog(false);
+      setMasterInput("");
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -227,8 +261,71 @@ export default function SettingsPage() {
               </form>
             </CardContent>
           </Card>
+
+          <Card className="mt-6 border-destructive/20">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-destructive/10 rounded-lg">
+                  <Lock className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <CardTitle>Master Password</CardTitle>
+                  <CardDescription>Security protection for resetting the wholesale password.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleMasterPasswordSubmit} className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <Label>Master Password</Label>
+                  <Input 
+                    type="password" 
+                    value={masterPassword} 
+                    onChange={e => setMasterPassword(e.target.value)} 
+                    required 
+                    minLength={6}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Confirm Master Password</Label>
+                  <Input 
+                    type="password" 
+                    value={confirmMasterPassword} 
+                    onChange={e => setConfirmMasterPassword(e.target.value)} 
+                    required 
+                    minLength={6}
+                  />
+                </div>
+                <Button type="submit" variant="destructive">
+                  Set Master Password
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showMasterDialog} onOpenChange={setShowMasterDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Master Password</DialogTitle>
+            <DialogDescription>Please provide the master password to authorize this reset.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              type="password" 
+              placeholder="Master Password" 
+              value={masterInput}
+              onChange={e => setMasterInput(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMasterDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => performReset(masterInput)}>Verify & Reset</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,16 +1,16 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
-import { api, errorSchemas } from "@shared/routes";
+import { api } from "@shared/routes";
 import { z } from "zod";
 import path from "path";
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-
-// Simple password hashing (mock for now, use bcrypt in real prod if package avail, but sticking to standard deps)
-// Actually, simple crypto hash is fine for this level.
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+import { db } from "./db";
+import { settings } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -22,11 +22,9 @@ function verifyPassword(password: string, hash: string): boolean {
   const [salt, key] = hash.split(":");
   const hashedPassword = scryptSync(password, salt, 64);
   const keyBuffer = Buffer.from(key, "hex");
-  const match = timingSafeEqual(hashedPassword, keyBuffer);
-  return match;
+  return timingSafeEqual(hashedPassword, keyBuffer);
 }
 
-// Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
@@ -41,41 +39,75 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
-  // Serve uploaded files
   app.use("/uploads", express.static(uploadDir));
 
   // Settings
   app.get(api.settings.get.path, async (req, res) => {
-    const settings = await storage.getSettings();
-    res.json({ hasPassword: !!settings?.wholesalePasswordHash });
+    const s = await storage.getSettings();
+    res.json({ 
+      hasPassword: !!s?.wholesalePasswordHash,
+      hasMasterPassword: !!s?.masterPasswordHash 
+    });
   });
 
   app.post(api.settings.setup.path, async (req, res) => {
     const { password } = req.body;
-    const settings = await storage.getSettings();
-    if (settings) {
+    const s = await storage.getSettings();
+    if (s?.wholesalePasswordHash) {
       return res.status(400).json({ message: "Password already set" });
     }
-    await storage.createSettings(hashPassword(password));
+    
+    if (s) {
+      await db.update(settings).set({ wholesalePasswordHash: hashPassword(password) }).where(eq(settings.id, s.id));
+    } else {
+      await storage.createSettings(hashPassword(password));
+    }
+    res.json({ success: true });
+  });
+
+  app.post("/api/settings/master-password", async (req, res) => {
+    const { password } = req.body;
+    const s = await storage.getSettings();
+    const hash = hashPassword(password);
+    
+    if (s) {
+      await db.update(settings).set({ masterPasswordHash: hash }).where(eq(settings.id, s.id));
+    } else {
+      await db.insert(settings).values({ wholesalePasswordHash: "", masterPasswordHash: hash });
+    }
+    res.json({ success: true });
+  });
+
+  app.post("/api/settings/reset", async (req, res) => {
+    const { masterPassword } = req.body;
+    const s = await storage.getSettings();
+    
+    if (s?.masterPasswordHash) {
+      if (!masterPassword) return res.status(401).json({ message: "Master password required" });
+      if (!verifyPassword(masterPassword, s.masterPasswordHash)) {
+        return res.status(401).json({ message: "Invalid master password" });
+      }
+    }
+
+    await storage.deleteSettings();
     res.json({ success: true });
   });
 
   app.post(api.settings.verify.path, async (req, res) => {
     const { password } = req.body;
-    const settings = await storage.getSettings();
-    if (!settings) return res.status(400).json({ message: "Setup required" });
+    const s = await storage.getSettings();
+    if (!s) return res.status(400).json({ message: "Setup required" });
     
-    const valid = verifyPassword(password, settings.wholesalePasswordHash);
+    const valid = verifyPassword(password, s.wholesalePasswordHash);
     res.json({ valid });
   });
 
   app.post(api.settings.changePassword.path, async (req, res) => {
     const { oldPassword, newPassword } = req.body;
-    const settings = await storage.getSettings();
-    if (!settings) return res.status(400).json({ message: "Setup required" });
+    const s = await storage.getSettings();
+    if (!s) return res.status(400).json({ message: "Setup required" });
 
-    if (!verifyPassword(oldPassword, settings.wholesalePasswordHash)) {
+    if (!verifyPassword(oldPassword, s.wholesalePasswordHash)) {
       return res.status(401).json({ message: "Invalid old password" });
     }
 
@@ -83,15 +115,10 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.post("/api/settings/reset", async (req, res) => {
-    await storage.deleteSettings();
-    res.json({ success: true });
-  });
-
   // Categories
   app.get(api.categories.list.path, async (req, res) => {
-    const categories = await storage.getCategories();
-    res.json(categories);
+    const categoriesList = await storage.getCategories();
+    res.json(categoriesList);
   });
 
   app.post(api.categories.create.path, async (req, res) => {
@@ -130,8 +157,8 @@ export async function registerRoutes(
       from: req.query.from as string,
       to: req.query.to as string,
     };
-    const customers = await storage.getCustomers(params);
-    res.json(customers);
+    const customersList = await storage.getCustomers(params);
+    res.json(customersList);
   });
 
   app.post(api.customers.create.path, async (req, res) => {
@@ -167,16 +194,14 @@ export async function registerRoutes(
 
   app.post(api.customers.uploadPhoto.path, upload.single("photo"), (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    
-    // In a real app we might rename this or move it
     const fileUrl = `/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
   });
 
   // Presets
   app.get(api.presets.list.path, async (req, res) => {
-    const presets = await storage.getPresets();
-    res.json(presets);
+    const presetsList = await storage.getPresets();
+    res.json(presetsList);
   });
 
   app.post(api.presets.create.path, async (req, res) => {
@@ -225,17 +250,10 @@ export async function registerRoutes(
       if (!req.file) return res.status(400).json({ message: "No backup file uploaded" });
       const rawData = fs.readFileSync(req.file.path, 'utf8');
       const data = JSON.parse(rawData);
-
-      // Simple validation
       if (!data.categories || !data.customers) {
         return res.status(400).json({ message: "Invalid backup file format" });
       }
-
-      // Restore logic - we'll need a way to clear and insert
-      // For simplicity in this fast mode, we'll suggest using a more robust method
-      // but let's implement a basic version that replaces data
       await storage.restoreBackup(data);
-      
       fs.unlinkSync(req.file.path);
       res.json({ success: true });
     } catch (err) {
@@ -243,23 +261,15 @@ export async function registerRoutes(
     }
   });
 
-  // Seed the database on startup
   seedDatabase().catch(console.error);
-
   return httpServer;
 }
 
-// Seed function
 export async function seedDatabase() {
   const existing = await storage.getCategories();
   if (existing.length === 0) {
-    // Single Vision
     const sv = await storage.createCategory({ name: "Single Vision", type: "FOLDER" });
-    
-    // Minus
     const minus = await storage.createCategory({ name: "Minus (-)", type: "FOLDER", parentId: sv.id });
-    
-    // HC
     const hc = await storage.createCategory({ name: "HC", type: "FOLDER", parentId: minus.id });
     await storage.createCategory({ 
       name: "-6.00 to -2.00", 
@@ -269,8 +279,6 @@ export async function seedDatabase() {
       wholesalePrice: 520,
       sortOrder: 0
     });
-
-    // ARC
     const arc = await storage.createCategory({ name: "ARC", type: "FOLDER", parentId: minus.id });
     await storage.createCategory({
       name: "-6.00 to -2.00",
@@ -280,8 +288,6 @@ export async function seedDatabase() {
       wholesalePrice: 600,
       sortOrder: 0
     });
-
-    // Plus
     const plus = await storage.createCategory({ name: "Plus (+)", type: "FOLDER", parentId: sv.id });
     const bluecut = await storage.createCategory({ name: "BLUECUT", type: "FOLDER", parentId: plus.id });
     await storage.createCategory({
@@ -292,8 +298,6 @@ export async function seedDatabase() {
       wholesalePrice: 900,
       sortOrder: 0
     });
-
-    // Presets
     const defaultPreset = await storage.createPreset("Default Preset");
     await storage.activatePreset(defaultPreset.id);
   }

@@ -37,6 +37,7 @@ export const api = {
       responses: {
         200: z.object({
           hasPassword: z.boolean(),
+          hasMasterPassword: z.boolean(),
         }),
       },
     },

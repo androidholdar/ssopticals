@@ -8,6 +8,7 @@ import { z } from "zod";
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   wholesalePasswordHash: text("wholesale_password_hash").notNull(),
+  masterPasswordHash: text("master_password_hash"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

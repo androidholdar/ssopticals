@@ -87,7 +87,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             <span className="flex items-center gap-2">
               {isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-              {isUnlocked ? "Unlocked Mode" : "Locked Mode"}
+              {isUnlocked ? "Unlocked" : "Locked"}
             </span>
           </button>
         </div>
@@ -125,20 +125,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </Dialog>
 
       {/* Mobile Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex justify-around p-2 z-50">
-        {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.href;
-            return (
-              <Link key={item.href} href={item.href} className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}>
-                <Icon className={cn("w-6 h-6", isActive && "fill-current/20")} />
-                {item.label}
-              </Link>
-            );
-          })}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex flex-col z-50">
+        <div className="flex justify-between items-center px-4 py-2 border-b bg-muted/30">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</span>
+          <button 
+            onClick={() => isUnlocked ? lock() : setShowUnlockDialog(true)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all",
+              isUnlocked 
+                ? "bg-green-50 border-green-200 text-green-700" 
+                : "bg-background border-border text-muted-foreground"
+            )}
+          >
+            {isUnlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+            {isUnlocked ? "UNLOCKED" : "LOCKED"}
+          </button>
+        </div>
+        <div className="flex justify-around p-2">
+          {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.href;
+              return (
+                <Link key={item.href} href={item.href} className={cn(
+                  "flex flex-col items-center gap-1 p-2 rounded-lg text-xs font-medium transition-colors",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}>
+                  <Icon className={cn("w-6 h-6", isActive && "fill-current/20")} />
+                  {item.label}
+                </Link>
+              );
+            })}
+        </div>
       </div>
     </div>
   );

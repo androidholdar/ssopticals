@@ -186,9 +186,6 @@ export default function CategoriesPage() {
           <p className="text-muted-foreground">Manage lens categories and pricing.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleAddType}>
-            Manage Types
-          </Button>
           <Button onClick={() => handleAdd(currentId)} className="shadow-lg shadow-primary/20">
             <Plus className="w-4 h-4 mr-2" /> New {currentId ? 'Sub-category' : 'Root Category'}
           </Button>

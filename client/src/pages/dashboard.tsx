@@ -117,7 +117,7 @@ export default function Dashboard() {
         unlock();
         setShowUnlockDialog(false);
         setPassword("");
-        toast({ title: "Wholesale Mode Unlocked", description: "You can now view wholesale prices." });
+        toast({ title: "Mode Unlocked", description: "You can now view prices." });
       } else {
         toast({ title: "Invalid Password", variant: "destructive" });
       }
@@ -133,17 +133,21 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold">Lens Prices</h1>
-          <p className="text-muted-foreground">Browse lens retail and wholesale prices.</p>
+          <p className="text-muted-foreground">Browse lens prices.</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            variant={isUnlocked ? "outline" : "default"}
-            className={cn("flex-1 sm:flex-none", isUnlocked && "text-green-600 border-green-200")}
+          <button 
             onClick={() => isUnlocked ? lock() : setShowUnlockDialog(true)}
+            className={cn(
+              "flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border font-medium transition-all",
+              isUnlocked 
+                ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
+                : "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+            )}
           >
-            {isUnlocked ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-            {isUnlocked ? "Wholesale Unlocked" : "Unlock Wholesale"}
-          </Button>
+            {isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            {isUnlocked ? "Unlocked" : "Unlock"}
+          </button>
         </div>
       </div>
 
@@ -277,8 +281,8 @@ export default function Dashboard() {
       <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Unlock Wholesale Mode</DialogTitle>
-            <DialogDescription>Enter the wholesale password to view wholesale prices.</DialogDescription>
+            <DialogTitle>Unlock Mode</DialogTitle>
+            <DialogDescription>Enter the password to view prices.</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input 

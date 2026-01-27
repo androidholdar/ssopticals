@@ -117,7 +117,6 @@ export default function Dashboard() {
         unlock();
         setShowUnlockDialog(false);
         setPassword("");
-        toast({ title: "Mode Unlocked", description: "You can now view prices." });
       } else {
         toast({ title: "Invalid Password", variant: "destructive" });
       }

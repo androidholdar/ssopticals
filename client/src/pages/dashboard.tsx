@@ -135,20 +135,6 @@ export default function Dashboard() {
           <h1 className="text-3xl font-display font-bold">Lens Prices</h1>
           <p className="text-muted-foreground">Browse lens prices.</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <button 
-            onClick={() => isUnlocked ? lock() : setShowUnlockDialog(true)}
-            className={cn(
-              "flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border font-medium transition-all",
-              isUnlocked 
-                ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
-                : "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
-            )}
-          >
-            {isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-            {isUnlocked ? "Unlocked" : "Unlock"}
-          </button>
-        </div>
       </div>
 
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">

@@ -270,37 +270,43 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <CardTitle>Master Password</CardTitle>
-                  <CardDescription>Security protection for resetting the wholesale password.</CardDescription>
+                  <CardDescription>
+                    {settings?.hasMasterPassword
+                      ? "Security protection is enabled. The master password cannot be changed."
+                      : "Security protection for resetting the wholesale password."}
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleMasterPasswordSubmit} className="space-y-4 max-w-md">
-                <div className="space-y-2">
-                  <Label>Master Password</Label>
-                  <Input 
-                    type="password" 
-                    value={masterPassword} 
-                    onChange={e => setMasterPassword(e.target.value)} 
-                    required 
-                    minLength={6}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Confirm Master Password</Label>
-                  <Input 
-                    type="password" 
-                    value={confirmMasterPassword} 
-                    onChange={e => setConfirmMasterPassword(e.target.value)} 
-                    required 
-                    minLength={6}
-                  />
-                </div>
-                <Button type="submit" variant="destructive">
-                  Set Master Password
-                </Button>
-              </form>
-            </CardContent>
+            {!settings?.hasMasterPassword && (
+              <CardContent>
+                <form onSubmit={handleMasterPasswordSubmit} className="space-y-4 max-w-md">
+                  <div className="space-y-2">
+                    <Label>Master Password</Label>
+                    <Input
+                      type="password"
+                      value={masterPassword}
+                      onChange={e => setMasterPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Confirm Master Password</Label>
+                    <Input
+                      type="password"
+                      value={confirmMasterPassword}
+                      onChange={e => setConfirmMasterPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <Button type="submit" variant="destructive">
+                    Set Master Password
+                  </Button>
+                </form>
+              </CardContent>
+            )}
           </Card>
         </TabsContent>
       </Tabs>

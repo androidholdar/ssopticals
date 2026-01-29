@@ -1,9 +1,7 @@
 const esbuild = require("esbuild").build;
-const viteBuild = require("vite").build;
 const { rm, readFile } = require("fs/promises");
 
 // server deps to bundle to reduce openat(2) syscalls
-// which helps cold start times
 const allowlist = [
   "@google/generative-ai",
   "axios",
@@ -37,6 +35,8 @@ async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
   console.log("building client...");
+  // 👇 Vite ko ESM way me load karo
+  const { build: viteBuild } = await import("vite");
   await viteBuild();
 
   console.log("building server...");

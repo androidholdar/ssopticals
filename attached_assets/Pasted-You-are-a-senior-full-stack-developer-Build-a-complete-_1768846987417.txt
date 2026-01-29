@@ -1,0 +1,339 @@
+You are a senior full-stack developer. Build a complete Optician Lens Rate + Customer Records web app.
+
+IMPORTANT: Make this app mobile-friendly (responsive) and easy to use for a shop owner.
+
+Tech Stack (Replit friendly):
+- Frontend: React + Vite
+- Styling: Tailwind CSS
+- Backend: Node.js + Express
+- Database: SQLite (store .db file in project folder for persistence)
+- Use Prisma ORM if possible, otherwise sqlite3.
+
+APP NAME:
+Optician Lens Manager
+
+========================================================
+CORE IDEA (Unlimited Nested Categories + Dual Pricing)
+========================================================
+
+The app must support a CATEGORY TREE with unlimited depth (infinite levels).
+
+Example Category Tree:
+Level 1: Single Vision
+  Level 2: Minus (-)
+    Level 3: HC
+      Level 4: -6.00 to -2.00   (Leaf item with prices)
+      Level 4: -10.00 to -6.00  (Leaf item with prices)
+    Level 3: ARC
+      Level 4: -6.00 to -2.00
+  Level 2: Plus (+)
+    Level 3: BLUECUT
+      Level 4: +2.00 to +6.00
+
+The user must be able to:
+- Add category at ANY level
+- Delete category at ANY level
+- Rename/Edit category at ANY level
+- Create unlimited nested subcategories (no limit)
+
+At the last level (leaf nodes), user can set:
+- Customer Price (MRP / Retail)
+- Wholesale Price
+
+Wholesale price must be protected by a user-defined password.
+
+========================================================
+PASSWORD / SECURITY REQUIREMENTS
+========================================================
+
+1) On first run (first time app is used):
+- Ask the user to set a Wholesale Password
+- Save it securely (hash the password with bcrypt, never store plain text)
+
+2) Wholesale price visibility:
+- By default show ONLY Customer Price to everyone
+- Add a button: "Show Wholesale Price"
+- When pressed, prompt for password
+- If password correct, show wholesale price in the UI
+- Add option "Hide Wholesale Price" (logout wholesale mode)
+
+3) Add an option in Settings page:
+- Change wholesale password (requires old password confirmation)
+
+========================================================
+MODULES
+========================================================
+
+Home page must have 2 big buttons:
+1) Lens Categories & Rates
+2) Customer Records (Date wise)
+
+Also show a third option on Home:
+3) Form Presets (for customer form customization)
+
+--------------------------------------------------------
+MODULE 1: Lens Categories & Rates
+--------------------------------------------------------
+
+UI Requirements:
+- Left side (or top on mobile): Tree view of categories
+- Right side: Details panel of selected node
+
+Tree Features:
+- Expand/collapse nodes
+- Add subcategory under selected node
+- Edit name of node
+- Delete node (confirm before delete)
+- Show breadcrumb path (Example: Single Vision > Minus(-) > HC)
+
+Leaf Node / Pricing:
+- Some categories are just folders (no price)
+- Only "leaf nodes" (final level) store the two prices:
+  - customerPrice
+  - wholesalePrice
+
+Allow user to mark a node as:
+- Folder (only contains children)
+OR
+- Price Item (leaf) (contains prices)
+If user marks it as Price Item, it can still optionally have children if needed (advanced users).
+
+Quick Search:
+- Add a Search bar to find any category/range quickly.
+- Search should match node name and show results with full path.
+
+Power Range Items:
+User can create a price item named like:
+- "-6.00 / -2.00"
+or
+- "-6.00 to -2.00"
+Store these as name strings.
+Optionally store numeric fields:
+- fromPower
+- toPower
+But not mandatory. If numeric fields exist:
+- Validate fromPower and toPower as numbers
+- Display with 2 decimal places
+If numeric not used, still allow slabName and price.
+
+Price Display Options:
+- Default shows Customer Price only.
+- Wholesale Price hidden unless unlocked.
+
+Export Feature:
+- Export full category tree + prices to JSON (download)
+- Import JSON to restore structure (optional but very useful)
+
+--------------------------------------------------------
+MODULE 2: Customer Records (Date Wise)
+--------------------------------------------------------
+
+Goal:
+Store customer details daily, including lens power and prescription image.
+
+Customer record fields:
+- date (auto today but editable)
+- name
+- age
+- address
+- mobileNumber
+- lensPowerCurrent (text)
+- lensPowerPrevious (text)
+- notes (optional)
+- prescriptionPhoto (image upload and store path)
+
+Photo Handling:
+- Allow user to upload prescription photo
+- Store image in server uploads folder
+- Save file path in SQLite
+- Allow viewing the image from customer record screen
+
+Customer Records Screens:
+1) Add Customer Record (form)
+2) View Records List (filter by date range, search by name/mobile)
+3) Record Detail page (with edit/delete)
+4) Export customer records to CSV/JSON (optional)
+
+Date Wise View:
+- Show today’s entries first
+- Calendar filter or date picker
+- Quick buttons: Today, Yesterday, Last 7 Days
+
+--------------------------------------------------------
+MODULE 3: Form Presets (Customer Form Builder)
+--------------------------------------------------------
+
+Requirement:
+Home page must have an option to create/edit presets for the customer form.
+
+Preset Idea:
+User can customize which fields appear in customer form and their order.
+
+Example:
+Preset "Basic":
+- Name, Mobile, Lens Power Current
+
+Preset "Full":
+- Name, Age, Address, Mobile, Current Power, Previous Power, Photo
+
+Implementation:
+- Create a Preset Manager page
+- User can:
+  - Create preset (presetName)
+  - Enable/disable fields (checkboxes)
+  - Reorder fields (drag drop or up/down arrows)
+  - Save preset
+- In Customer Records module, user can select preset before filling form.
+
+========================================================
+DATABASE DESIGN (SQLite)
+========================================================
+
+Table: settings
+- id (1 row)
+- wholesalePasswordHash (string)
+- wholesaleUnlocked (boolean optional)
+
+Table: category_nodes
+- id (integer primary key)
+- parentId (nullable, FK to category_nodes.id)
+- name (string)
+- nodeType (string: "FOLDER" or "PRICE_ITEM")
+- customerPrice (number nullable)
+- wholesalePrice (number nullable)
+- fromPower (number nullable)
+- toPower (number nullable)
+- sortOrder (integer default 0)
+- createdAt
+- updatedAt
+
+Table: customer_records
+- id (integer primary key)
+- date (string ISO)
+- name (string)
+- age (integer nullable)
+- address (string nullable)
+- mobileNumber (string nullable)
+- lensPowerCurrent (string)
+- lensPowerPrevious (string nullable)
+- notes (string nullable)
+- prescriptionPhotoPath (string nullable)
+- createdAt
+- updatedAt
+
+Table: form_presets
+- id (integer primary key)
+- presetName (string unique)
+- createdAt
+- updatedAt
+
+Table: form_preset_fields
+- id (integer primary key)
+- presetId (FK)
+- fieldKey (string) ex: "name","age","address","mobileNumber","lensPowerCurrent","lensPowerPrevious","notes","prescriptionPhoto"
+- label (string)
+- isEnabled (boolean)
+- orderIndex (integer)
+
+========================================================
+API ENDPOINTS (Express)
+========================================================
+
+Auth/Settings:
+- GET  /api/settings
+- POST /api/settings/set-password   { password }
+- POST /api/settings/unlock         { password }
+- POST /api/settings/change-password { oldPassword, newPassword }
+
+Category Tree:
+- GET  /api/categories/tree
+- POST /api/categories/node         { parentId, name, nodeType }
+- PUT  /api/categories/node/:id     { name, nodeType, customerPrice, wholesalePrice, fromPower, toPower }
+- DELETE /api/categories/node/:id   (cascade delete children)
+
+Customer Records:
+- GET  /api/customers?from=YYYY-MM-DD&to=YYYY-MM-DD&search=...
+- POST /api/customers  (multipart form for image upload)
+- PUT  /api/customers/:id (multipart optional)
+- DELETE /api/customers/:id
+
+Form Presets:
+- GET  /api/presets
+- POST /api/presets
+- PUT  /api/presets/:id
+- DELETE /api/presets/:id
+- GET  /api/presets/:id/fields
+- PUT  /api/presets/:id/fields (bulk update order + enabled)
+
+Export/Import:
+- GET /api/export/categories-json
+- POST /api/import/categories-json
+
+========================================================
+FRONTEND PAGES (React)
+========================================================
+
+1) Home Page
+- Big card buttons:
+  - Lens Categories & Rates
+  - Customer Records
+  - Form Presets
+- Show small status: Wholesale price locked/unlocked
+
+2) Lens Categories Page
+- Tree view left
+- Node details right
+- Add/Edit/Delete node buttons
+- Price inputs for leaf nodes
+- Wholesale price hidden unless unlocked
+- Search box
+
+3) Customer Records Page
+- Add new record button
+- Date filter
+- Search by mobile/name
+- List view
+- Record detail modal/page
+
+4) Form Presets Page
+- Create preset
+- Manage fields enabled/disabled
+- Reorder fields
+- Save preset
+
+5) Settings Page
+- Set password on first run
+- Change password
+- Lock/Unlock wholesale mode
+
+========================================================
+UX REQUIREMENTS
+========================================================
+- Use toast notifications for success/error
+- Confirm on delete
+- Show loading spinners
+- Very simple and clean UI
+- Works great on Android mobile browser
+
+========================================================
+DELIVERABLES
+========================================================
+- Provide full working Replit-ready code.
+- Provide file/folder structure.
+- Add README instructions:
+  - npm install
+  - npm run dev (frontend)
+  - npm run server (backend)
+  OR use "concurrently" to run both in one command.
+
+========================================================
+EXTRA (Optional but helpful)
+========================================================
+- Seed demo data:
+  Single Vision -> Minus(-) -> HC -> -6.00 to -2.00 -> customer=650 wholesale=520
+  Single Vision -> Minus(-) -> ARC -> -6.00 to -2.00 -> customer=750 wholesale=600
+- Add "Duplicate node" option for faster entry.
+- Add "Sort order" drag and drop in tree.
+
+Now implement this complete application.
+Return the complete code, ensure it runs successfully.

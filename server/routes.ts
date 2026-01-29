@@ -68,42 +68,48 @@ export async function registerRoutes(
   app.post("/api/settings/master-password", async (req, res) => {
     const { password } = req.body;
     const s = await storage.getSettings();
-    const hash = hashPassword(password);
-    
-    if (s) {
-      await db.update(settings).set({ masterPasswordHash: hash }).where(eq(settings.id, s.id));
-    } else {
-      await db.insert(settings).values({ wholesalePasswordHash: "", masterPasswordHash: hash });
+
+    if (s?.masterPasswordHash) {
+      return res.status(400).json({
+        message: "Master password already set. It cannot be changed."
+      });
     }
+
+    const hash = hashPassword(password);
+
+    if (s) {
+      await db
+        .update(settings)
+        .set({ masterPasswordHash: hash })
+        .where(eq(settings.id, s.id));
+    } else {
+      await db.insert(settings).values({
+        wholesalePasswordHash: "",
+        masterPasswordHash: hash
+      });
+    }
+
     res.json({ success: true });
   });
 
-  app.post("/api/settings/master-password", async (req, res) => {
-  const { password } = req.body;
-  const s = await storage.getSettings();
+  app.post("/api/settings/reset", async (req, res) => {
+    const { masterPassword } = req.body;
+    const s = await storage.getSettings();
 
-  if (s?.masterPasswordHash) {
-    return res.status(400).json({
-      message: "Master password already set. It cannot be changed."
-    });
-  }
+    if (!s) return res.status(400).json({ message: "Setup required" });
 
-  const hash = hashPassword(password);
+    if (s.masterPasswordHash) {
+      if (!masterPassword || !verifyPassword(masterPassword, s.masterPasswordHash)) {
+        return res.status(401).json({ message: "Invalid master password" });
+      }
+    }
 
-  if (s) {
-    await db
-      .update(settings)
-      .set({ masterPasswordHash: hash })
+    await db.update(settings)
+      .set({ wholesalePasswordHash: "" })
       .where(eq(settings.id, s.id));
-  } else {
-    await db.insert(settings).values({
-      wholesalePasswordHash: "",
-      masterPasswordHash: hash
-    });
-  }
 
-  res.json({ success: true });
-});
+    res.json({ success: true });
+  });
 
   app.post(api.settings.verify.path, async (req, res) => {
     const { password } = req.body;

@@ -237,7 +237,8 @@ export class DatabaseStorage implements IStorage {
       // Restore Settings
       if (data.settings) {
         await tx.insert(settings).values({
-          wholesalePasswordHash: data.settings.wholesalePasswordHash
+          wholesalePasswordHash: data.settings.wholesalePasswordHash,
+          masterPasswordHash: data.settings.masterPasswordHash
         });
       }
 

@@ -11,6 +11,8 @@ import {
   settings
 } from './schema';
 
+export * from './schema';
+
 // Error Schemas
 export const errorSchemas = {
   validation: z.object({

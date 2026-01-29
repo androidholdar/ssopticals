@@ -141,9 +141,8 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="data" className="w-full">
-        <TabsList className="w-full md:w-auto grid grid-cols-3">
+        <TabsList className="w-full md:w-auto grid grid-cols-2">
           <TabsTrigger value="data">Backup & Restore</TabsTrigger>
-          <TabsTrigger value="presets">Form</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         
@@ -189,10 +188,6 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="presets" className="mt-6">
-          <PresetEditor />
-        </TabsContent>
-
         <TabsContent value="security" className="mt-6">
           <Card>
             <CardHeader>

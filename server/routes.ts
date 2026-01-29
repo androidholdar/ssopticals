@@ -94,10 +94,10 @@ export async function registerRoutes(
     }
   }
 
-  // ✅ ONLY clear wholesale password
+  // ✅ Only clear wholesale password
   await db
     .update(settings)
-    .set({ wholesalePasswordHash: null })
+    .set({ wholesalePasswordHash: "" }) // <<< FIX HERE
     .where(eq(settings.id, s.id));
 
   res.json({ success: true });

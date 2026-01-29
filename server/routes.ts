@@ -78,27 +78,29 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.post("/api/settings/reset", async (req, res) => {
-  const { masterPassword } = req.body;
+  app.post("/api/settings/master-password", async (req, res) => {
+  const { password } = req.body;
   const s = await storage.getSettings();
 
-  if (!s) return res.status(400).json({ message: "No settings found" });
-
-  if (s.masterPasswordHash) {
-    if (!masterPassword) {
-      return res.status(401).json({ message: "Master password required" });
-    }
-
-    if (!verifyPassword(masterPassword, s.masterPasswordHash)) {
-      return res.status(401).json({ message: "Invalid master password" });
-    }
+  if (s?.masterPasswordHash) {
+    return res.status(400).json({
+      message: "Master password already set. It cannot be changed."
+    });
   }
 
-  // ✅ Only clear wholesale password
-  await db
-    .update(settings)
-    .set({ wholesalePasswordHash: "" }) // <<< FIX HERE
-    .where(eq(settings.id, s.id));
+  const hash = hashPassword(password);
+
+  if (s) {
+    await db
+      .update(settings)
+      .set({ masterPasswordHash: hash })
+      .where(eq(settings.id, s.id));
+  } else {
+    await db.insert(settings).values({
+      wholesalePasswordHash: "",
+      masterPasswordHash: hash
+    });
+  }
 
   res.json({ success: true });
 });

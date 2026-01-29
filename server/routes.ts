@@ -25,13 +25,8 @@ function verifyPassword(password: string, hash: string): boolean {
   return timingSafeEqual(hashedPassword, keyBuffer);
 }
 
-const uploadDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-
 const upload = multer({ 
-  dest: uploadDir,
+  dest: path.join(process.cwd(), "uploads"),
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
@@ -39,7 +34,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  app.use("/uploads", express.static(uploadDir));
 
   // Settings
   app.get(api.settings.get.path, async (req, res) => {
@@ -90,6 +84,14 @@ export async function registerRoutes(
     }
 
     res.json({ success: true });
+  });
+
+  app.post("/api/settings/reset-master-once", async (req, res) => {
+    const s = await storage.getSettings();
+    if (s) {
+      await db.update(settings).set({ masterPasswordHash: null }).where(eq(settings.id, s.id));
+    }
+    res.json({ success: true, message: "Master password cleared. You can now set a new one in Settings." });
   });
 
   app.post("/api/settings/reset", async (req, res) => {
@@ -208,12 +210,6 @@ export async function registerRoutes(
   app.delete(api.customers.delete.path, async (req, res) => {
     await storage.deleteCustomer(Number(req.params.id));
     res.status(204).send();
-  });
-
-  app.post(api.customers.uploadPhoto.path, upload.single("photo"), (req, res) => {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({ url: fileUrl });
   });
 
   // Presets

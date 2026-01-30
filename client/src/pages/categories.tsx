@@ -13,6 +13,8 @@ import {
   Trash2, 
   ChevronRight, 
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   IndianRupee, 
   Box,
   Search
@@ -53,6 +55,7 @@ export default function CategoriesPage() {
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const [longPressedId, setLongPressedId] = useState<number | null>(null);
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
+  const pressPos = useRef<{ x: number, y: number } | null>(null);
 
   // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
@@ -103,7 +106,8 @@ export default function CategoriesPage() {
     setLongPressedId(null);
   };
 
-  const handlePressStart = (id: number) => {
+  const handlePressStart = (id: number, x: number, y: number) => {
+    pressPos.current = { x, y };
     pressTimer.current = setTimeout(() => {
       setLongPressedId(id);
       window.navigator.vibrate?.(50);
@@ -114,12 +118,58 @@ export default function CategoriesPage() {
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
+    pressPos.current = null;
+  };
+
+  const handlePressMove = (x: number, y: number) => {
+    if (pressPos.current) {
+      const dx = Math.abs(x - pressPos.current.x);
+      const dy = Math.abs(y - pressPos.current.y);
+      if (dx > 10 || dy > 10) {
+        if (pressTimer.current) {
+          clearTimeout(pressTimer.current);
+        }
+      }
+    }
   };
 
   const confirmDelete = async () => {
     if (deleteId) {
       await deleteMutation.mutateAsync(deleteId);
       setDeleteId(null);
+    }
+  };
+
+  const handleMove = async (id: number, direction: 'up' | 'down') => {
+    const index = displayCategories.findIndex(c => c.id === id);
+    if (index === -1) return;
+
+    const neighborIndex = direction === 'up' ? index - 1 : index + 1;
+    if (neighborIndex < 0 || neighborIndex >= displayCategories.length) return;
+
+    const node = displayCategories[index];
+    const neighbor = displayCategories[neighborIndex];
+
+    // Ensure they have valid sort orders to swap
+    const nodeOrder = node.sortOrder ?? 0;
+    const neighborOrder = neighbor.sortOrder ?? 0;
+
+    try {
+      // If they have the same sort order, we need to differentiate them
+      if (nodeOrder === neighborOrder) {
+        // Simple fix: set one to neighborOrder - 1 or + 1
+        await updateMutation.mutateAsync({
+          id: node.id,
+          sortOrder: direction === 'up' ? neighborOrder - 1 : neighborOrder + 1
+        });
+      } else {
+        // Swap them
+        await updateMutation.mutateAsync({ id: node.id, sortOrder: neighborOrder });
+        await updateMutation.mutateAsync({ id: neighbor.id, sortOrder: nodeOrder });
+      }
+      toast({ title: "Position updated" });
+    } catch (error) {
+      toast({ title: "Failed to move", variant: "destructive" });
     }
   };
 
@@ -262,18 +312,22 @@ export default function CategoriesPage() {
                     if (node.type === 'FOLDER') handleNavigate(node.id);
                   }}
                   onMouseDown={(e) => {
-                    // Prevent default only if it's not a button click
                     if (!(e.target as HTMLElement).closest('button')) {
-                      handlePressStart(node.id);
+                      handlePressStart(node.id, e.clientX, e.clientY);
                     }
                   }}
+                  onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
                   onTouchStart={(e) => {
-                    // Prevent default to stop text selection on mobile
                     if (!(e.target as HTMLElement).closest('button')) {
-                      handlePressStart(node.id);
+                      const touch = e.touches[0];
+                      handlePressStart(node.id, touch.clientX, touch.clientY);
                     }
+                  }}
+                  onTouchMove={(e) => {
+                    const touch = e.touches[0];
+                    handlePressMove(touch.clientX, touch.clientY);
                   }}
                   onTouchEnd={handlePressEnd}
                   onContextMenu={(e) => {
@@ -322,9 +376,19 @@ export default function CategoriesPage() {
                     longPressedId === node.id ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
                   )}>
                     {isUnlocked && (
-                      <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMove(node.id, 'up'); }} disabled={displayCategories.indexOf(node) === 0}>
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMove(node.id, 'down'); }} disabled={displayCategories.indexOf(node) === displayCategories.length - 1}>
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                     {isUnlocked && (
                       <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>

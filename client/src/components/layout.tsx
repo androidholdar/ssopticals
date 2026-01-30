@@ -27,7 +27,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     try {
       const { valid } = await verify.mutateAsync({ password });
       if (valid) {
-        unlock();
+        unlock(password);
         setShowUnlockDialog(false);
         setPassword("");
       } else {

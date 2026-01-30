@@ -567,9 +567,11 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-display font-bold">Customers</h1>
           <p className="text-muted-foreground">Manage customer records and prescriptions.</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
-          <Plus className="w-4 h-4 mr-2" /> New Customer
-        </Button>
+        {isUnlocked && (
+          <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
+            <Plus className="w-4 h-4 mr-2" /> New Customer
+          </Button>
+        )}
       </div>
 
       <div className="relative">
@@ -669,12 +671,16 @@ export default function CustomersPage() {
               <DialogTitle>{isEditMode ? "Edit Customer" : "Customer Details"}</DialogTitle>
               {!isEditMode && (
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}>
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedCustomer.id)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
+                  {isUnlocked && (
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}>
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {isUnlocked && (
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedCustomer.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

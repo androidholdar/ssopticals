@@ -185,11 +185,13 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-display font-bold">Lens</h1>
           <p className="text-muted-foreground">Manage lens categories and pricing.</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => handleAdd(currentId)} className="shadow-lg shadow-primary/20">
-            <Plus className="w-4 h-4 mr-2" /> New {currentId ? 'Sub-category' : 'Root Category'}
-          </Button>
-        </div>
+        {isUnlocked && (
+          <div className="flex gap-2">
+            <Button onClick={() => handleAdd(currentId)} className="shadow-lg shadow-primary/20">
+              <Plus className="w-4 h-4 mr-2" /> New {currentId ? 'Sub-category' : 'Root Category'}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
@@ -319,12 +321,16 @@ export default function CategoriesPage() {
                     "flex items-center gap-1 transition-all ml-4",
                     longPressedId === node.id ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
                   )}>
-                    <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {isUnlocked && (
+                      <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {isUnlocked && (
+                      <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   
                   {node.type === 'FOLDER' && longPressedId !== node.id && (

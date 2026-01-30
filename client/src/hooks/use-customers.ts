@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type CreateCustomerRequest, type UpdateCustomerRequest } from "@shared/schema";
+import { useWholesale } from "./use-wholesale";
 
 type CustomerFilters = {
   search?: string;
@@ -40,15 +41,23 @@ export function useCustomer(id: number) {
 
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
+  const { wholesalePassword } = useWholesale();
+
   return useMutation({
     mutationFn: async (data: CreateCustomerRequest) => {
       const validated = api.customers.create.input.parse(data);
       const res = await fetch(api.customers.create.path, {
         method: api.customers.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Wholesale-Password": wholesalePassword || "",
+        },
         body: JSON.stringify(validated),
       });
-      if (!res.ok) throw new Error("Failed to create customer");
+      if (!res.ok) {
+        if (res.status === 403) throw new Error("Permission denied: App is locked.");
+        throw new Error("Failed to create customer");
+      }
       return api.customers.create.responses[201].parse(await res.json());
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
@@ -57,16 +66,24 @@ export function useCreateCustomer() {
 
 export function useUpdateCustomer() {
   const queryClient = useQueryClient();
+  const { wholesalePassword } = useWholesale();
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & UpdateCustomerRequest) => {
       const validated = api.customers.update.input.parse(updates);
       const url = buildUrl(api.customers.update.path, { id });
       const res = await fetch(url, {
         method: api.customers.update.method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Wholesale-Password": wholesalePassword || "",
+        },
         body: JSON.stringify(validated),
       });
-      if (!res.ok) throw new Error("Failed to update customer");
+      if (!res.ok) {
+        if (res.status === 403) throw new Error("Permission denied: App is locked.");
+        throw new Error("Failed to update customer");
+      }
       return api.customers.update.responses[200].parse(await res.json());
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
@@ -75,13 +92,21 @@ export function useUpdateCustomer() {
 
 export function useDeleteCustomer() {
   const queryClient = useQueryClient();
+  const { wholesalePassword } = useWholesale();
+
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.customers.delete.path, { id });
       const res = await fetch(url, {
         method: api.customers.delete.method,
+        headers: {
+          "X-Wholesale-Password": wholesalePassword || "",
+        }
       });
-      if (!res.ok) throw new Error("Failed to delete customer");
+      if (!res.ok) {
+        if (res.status === 403) throw new Error("Permission denied: App is locked.");
+        throw new Error("Failed to delete customer");
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
   });

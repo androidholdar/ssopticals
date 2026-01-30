@@ -114,7 +114,7 @@ export default function Dashboard() {
     try {
       const { valid } = await verify.mutateAsync({ password });
       if (valid) {
-        unlock();
+        unlock(password);
         setShowUnlockDialog(false);
         setPassword("");
       } else {

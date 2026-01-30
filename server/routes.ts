@@ -128,12 +128,27 @@ export async function registerRoutes(
   });
 
   // Categories
+  async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const password = req.headers["x-wholesale-password"] as string;
+    const s = await storage.getSettings();
+
+    // If no password is set, allow (or maybe restrict? The user said "in unlocked mode to delete")
+    // If a password IS set, we must verify it.
+    if (s && s.wholesalePasswordHash) {
+      if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
+        return res.status(403).json({ message: "Wholesale access required" });
+      }
+    }
+    next();
+  }
+
+  // Categories
   app.get(api.categories.list.path, async (req, res) => {
     const categoriesList = await storage.getCategories();
     res.json(categoriesList);
   });
 
-  app.post(api.categories.create.path, async (req, res) => {
+  app.post(api.categories.create.path, checkWholesaleAuth, async (req, res) => {
     try {
       const input = api.categories.create.input.parse(req.body);
       const category = await storage.createCategory(input);
@@ -147,7 +162,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put(api.categories.update.path, async (req, res) => {
+  app.put(api.categories.update.path, checkWholesaleAuth, async (req, res) => {
     try {
       const input = api.categories.update.input.parse(req.body);
       const category = await storage.updateCategory(Number(req.params.id), input);
@@ -157,7 +172,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.categories.delete.path, async (req, res) => {
+  app.delete(api.categories.delete.path, checkWholesaleAuth, async (req, res) => {
     await storage.deleteCategory(Number(req.params.id));
     res.status(204).send();
   });
@@ -173,7 +188,7 @@ export async function registerRoutes(
     res.json(customersList);
   });
 
-  app.post(api.customers.create.path, async (req, res) => {
+  app.post(api.customers.create.path, checkWholesaleAuth, async (req, res) => {
     try {
       const input = api.customers.create.input.parse(req.body);
       const customer = await storage.createCustomer(input);
@@ -189,7 +204,7 @@ export async function registerRoutes(
     res.json(customer);
   });
 
-  app.put(api.customers.update.path, async (req, res) => {
+  app.put(api.customers.update.path, checkWholesaleAuth, async (req, res) => {
     try {
       const input = api.customers.update.input.parse(req.body);
       const customer = await storage.updateCustomer(Number(req.params.id), input);
@@ -199,7 +214,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.customers.delete.path, async (req, res) => {
+  app.delete(api.customers.delete.path, checkWholesaleAuth, async (req, res) => {
     await storage.deleteCustomer(Number(req.params.id));
     res.status(204).send();
   });
@@ -251,7 +266,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/restore", upload.single("backup"), async (req, res) => {
+  app.post("/api/restore", checkWholesaleAuth, upload.single("backup"), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No backup file uploaded" });
       const rawData = fs.readFileSync(req.file.path, 'utf8');

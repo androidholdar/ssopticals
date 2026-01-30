@@ -249,7 +249,7 @@ export default function CategoriesPage() {
                 <div 
                   key={node.id}
                   className={cn(
-                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none touch-none",
+                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none",
                     node.type === 'FOLDER' && "cursor-pointer",
                     longPressedId === node.id ? "bg-primary/5 border-primary/20 scale-[0.98]" : "hover:border-border"
                   )}

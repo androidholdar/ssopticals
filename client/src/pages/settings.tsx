@@ -271,26 +271,6 @@ export default function SettingsPage() {
                       : "Security protection for resetting the wholesale password."}
                   </CardDescription>
                 </div>
-                {settings?.hasMasterPassword && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-auto text-xs text-muted-foreground hover:text-destructive"
-                    onClick={async () => {
-                      if (confirm("Are you sure you want to reset the master password? You can only do this once to set a new strong password.")) {
-                        try {
-                          await apiRequest("POST", "/api/settings/reset-master-once", {});
-                          toast({ title: "Master Password Reset", description: "You can now set a new master password." });
-                          queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-                        } catch (error: any) {
-                          toast({ title: "Error", description: error.message, variant: "destructive" });
-                        }
-                      }
-                    }}
-                  >
-                    Reset
-                  </Button>
-                )}
               </div>
             </CardHeader>
             {!settings?.hasMasterPassword && (

@@ -95,7 +95,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         <div className="flex justify-center pt-2">
-          <span className="text-xs font-bold text-muted-foreground tracking-[0.2em] uppercase">
+          <span className="text-base font-bold text-muted-foreground tracking-[0.2em] uppercase">
             S.S. OPTICALS
           </span>
         </div>

@@ -34,15 +34,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // ONE-TIME RESET OF MASTER PASSWORD
-  // This will run once when the server starts and clear the master password.
-  // After setting your new password, this block should be removed.
-  storage.getSettings().then(async (s) => {
-    if (s && s.masterPasswordHash) {
-      await db.update(settings).set({ masterPasswordHash: null }).where(eq(settings.id, s.id));
-      console.log("Master password has been reset as requested.");
-    }
-  });
 
   // Settings
   app.get(api.settings.get.path, async (req, res) => {

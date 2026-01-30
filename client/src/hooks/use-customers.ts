@@ -86,18 +86,3 @@ export function useDeleteCustomer() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
   });
 }
-
-export function useUploadPhoto() {
-  return useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("photo", file);
-      const res = await fetch(api.customers.uploadPhoto.path, {
-        method: api.customers.uploadPhoto.method,
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Failed to upload photo");
-      return api.customers.uploadPhoto.responses[200].parse(await res.json());
-    },
-  });
-}

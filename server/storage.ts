@@ -199,7 +199,6 @@ export class DatabaseStorage implements IStorage {
       { key: "newPower", label: "New Power" },
       { key: "oldPower", label: "Old Power" },
       { key: "notes", label: "Notes" },
-      { key: "photo", label: "Prescription Photo" },
     ];
 
     let index = 0;
@@ -280,7 +279,6 @@ export class DatabaseStorage implements IStorage {
             oldPowerLeftCyl: cust.oldPowerLeftCyl,
             oldPowerLeftAxis: cust.oldPowerLeftAxis,
             notes: cust.notes,
-            prescriptionPhotoPath: cust.prescriptionPhotoPath,
             createdAt: new Date(cust.createdAt)
           });
         }

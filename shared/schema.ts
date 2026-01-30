@@ -25,7 +25,7 @@ export const categories = pgTable("categories", {
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
-  date: text("date").notNull(), // ISO Date string YYYY-MM-DD
+  date: text("date").notNull(), // Date string dd/mm/yyyy
   name: text("name").notNull(),
   age: integer("age"),
   address: text("address"),
@@ -47,7 +47,6 @@ export const customers = pgTable("customers", {
   oldPowerLeftAxis: text("old_power_left_axis"),
   oldPowerLeftAdd: text("old_power_left_add"),
   notes: text("notes"),
-  prescriptionPhotoPath: text("prescription_photo_path"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

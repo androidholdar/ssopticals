@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface WholesaleState {
   isUnlocked: boolean;
@@ -7,15 +6,8 @@ interface WholesaleState {
   lock: () => void;
 }
 
-export const useWholesale = create<WholesaleState>()(
-  persist(
-    (set) => ({
-      isUnlocked: false,
-      unlock: () => set({ isUnlocked: true }),
-      lock: () => set({ isUnlocked: false }),
-    }),
-    {
-      name: 'wholesale-storage',
-    }
-  )
-);
+export const useWholesale = create<WholesaleState>()((set) => ({
+  isUnlocked: false,
+  unlock: () => set({ isUnlocked: true }),
+  lock: () => set({ isUnlocked: false }),
+}));

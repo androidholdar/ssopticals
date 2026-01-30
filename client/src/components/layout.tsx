@@ -94,7 +94,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto p-4 md:p-8">
+        <div className="flex justify-center pt-2">
+          <span className="text-[10px] font-bold text-muted-foreground tracking-[0.2em] uppercase">
+            S.S. OPTICALS
+          </span>
+        </div>
+        <div className="max-w-7xl mx-auto p-4 md:p-8 pt-2 md:pt-4">
           {children}
         </div>
       </main>

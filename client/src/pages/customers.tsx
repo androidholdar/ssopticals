@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useCustomers, useCreateCustomer, useUploadPhoto, useDeleteCustomer, useUpdateCustomer } from "@/hooks/use-customers";
+import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Lock } from "lucide-react";
-import { format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday, parse } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useWholesale } from "@/hooks/use-wholesale";
@@ -30,16 +30,14 @@ export default function CustomersPage() {
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
-  const uploadMutation = useUploadPhoto();
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: format(new Date(), 'dd/MM/yyyy'),
     mobile: "",
     address: "",
     age: "",
@@ -59,12 +57,10 @@ export default function CustomersPage() {
     oldPowerLeftCyl: "",
     oldPowerLeftAxis: "",
     oldPowerLeftAdd: "",
-    notes: "",
-    prescriptionPhotoPath: ""
+    notes: ""
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // Determine active preset fields
   const activePreset = presets.find(p => p.isActive) || presets[0];
@@ -72,36 +68,35 @@ export default function CustomersPage() {
 
   // Group customers
   const grouped = customers.reduce((acc: GroupedCustomers, customer) => {
-    const date = new Date(customer.date);
+    let date: Date;
+    if (customer.date.includes('/')) {
+      date = parse(customer.date, 'dd/MM/yyyy', new Date());
+    } else {
+      date = new Date(customer.date);
+    }
+
     if (isToday(date)) acc.today.push(customer);
     else if (isYesterday(date)) acc.yesterday.push(customer);
     else acc.older.push(customer);
     return acc;
   }, { today: [], yesterday: [], older: [] });
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const { url } = await uploadMutation.mutateAsync(file);
-      if (isEdit) {
-        setSelectedCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
-      } else {
-        setNewCustomer((prev: any) => ({ ...prev, prescriptionPhotoPath: url }));
-      }
-      toast({ title: "Photo Uploaded", description: "Prescription attached successfully." });
-      
-      // Reset input value to allow selecting the same file again if needed
-      e.target.value = '';
-    } catch (error) {
-      toast({ title: "Upload Failed", variant: "destructive" });
-    }
+  const validateDate = (dateStr: string) => {
+    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+    return regex.test(dateStr);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!validateDate(newCustomer.date)) {
+        return toast({
+          title: "Invalid Date Format",
+          description: "Please use dd/mm/yyyy format.",
+          variant: "destructive"
+        });
+      }
+
       if (newCustomer.mobile && newCustomer.mobile.length !== 10) {
         return toast({ 
           title: "Invalid Mobile Number", 
@@ -131,7 +126,7 @@ export default function CustomersPage() {
       setIsDialogOpen(false);
       setNewCustomer({
         name: "",
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: format(new Date(), 'dd/MM/yyyy'),
         mobile: "",
         address: "",
         age: "",
@@ -151,8 +146,7 @@ export default function CustomersPage() {
         oldPowerLeftCyl: "",
         oldPowerLeftAxis: "",
         oldPowerLeftAdd: "",
-        notes: "",
-        prescriptionPhotoPath: ""
+        notes: ""
       });
     } catch (error) {
       toast({ title: "Error", description: "Failed to create customer.", variant: "destructive" });
@@ -163,6 +157,14 @@ export default function CustomersPage() {
     e.preventDefault();
     if (!selectedCustomer) return;
     try {
+      if (!validateDate(selectedCustomer.date)) {
+        return toast({
+          title: "Invalid Date Format",
+          description: "Please use dd/mm/yyyy format.",
+          variant: "destructive"
+        });
+      }
+
       if (selectedCustomer.mobile && selectedCustomer.mobile.length !== 10) {
         return toast({ 
           title: "Invalid Mobile Number", 
@@ -629,7 +631,8 @@ export default function CustomersPage() {
                 <div className="relative">
                   <CalendarIcon className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                   <Input 
-                    type="date"
+                    type="text"
+                    placeholder="dd/mm/yyyy"
                     className="pl-9"
                     value={newCustomer.date}
                     onChange={e => setNewCustomer({ ...newCustomer, date: e.target.value })}
@@ -646,67 +649,11 @@ export default function CustomersPage() {
                 </div>
               ))}
 
-              <div className="col-span-2 space-y-2">
-                <Label>Prescription Photo</Label>
-                <div className="flex items-center gap-4">
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-                  >
-                    {newCustomer.prescriptionPhotoPath ? (
-                      <div className="relative">
-                        <img 
-                          src={newCustomer.prescriptionPhotoPath} 
-                          alt="Prescription" 
-                          className="max-h-32 object-contain rounded-md" 
-                        />
-                        <Button 
-                          size="icon" 
-                          variant="destructive" 
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNewCustomer({ ...newCustomer, prescriptionPhotoPath: "" });
-                          }}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                        <span className="text-sm text-muted-foreground">Attach Prescription</span>
-                      </>
-                    )}
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-12 w-12"
-                    onClick={() => {
-                      if (fileInputRef.current) {
-                        fileInputRef.current.setAttribute('capture', 'environment');
-                        fileInputRef.current.click();
-                      }
-                    }}
-                  >
-                    <Camera className="w-5 h-5" />
-                  </Button>
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={fileInputRef}
-                  onChange={(e) => handleFileChange(e, false)}
-                />
-              </div>
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending || uploadMutation.isPending}>
+              <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Creating..." : "Create Record"}
               </Button>
             </DialogFooter>
@@ -741,7 +688,8 @@ export default function CustomersPage() {
                     <div className="relative">
                       <CalendarIcon className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                       <Input 
-                        type="date"
+                        type="text"
+                        placeholder="dd/mm/yyyy"
                         className="pl-9"
                         value={selectedCustomer.date}
                         onChange={e => setSelectedCustomer({ ...selectedCustomer, date: e.target.value })}
@@ -756,66 +704,10 @@ export default function CustomersPage() {
                       {renderField(field.fieldKey, field.label, true)}
                     </div>
                   ))}
-                  <div className="col-span-2 space-y-2">
-                    <Label>Prescription Photo</Label>
-                    <div className="flex items-center gap-4">
-                      <div 
-                        onClick={() => editFileInputRef.current?.click()}
-                        className="flex-1 border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-                      >
-                        {selectedCustomer.prescriptionPhotoPath ? (
-                          <div className="relative">
-                            <img 
-                              src={selectedCustomer.prescriptionPhotoPath} 
-                              alt="Prescription" 
-                              className="max-h-32 object-contain rounded-md" 
-                            />
-                            <Button 
-                              size="icon" 
-                              variant="destructive" 
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCustomer({ ...selectedCustomer, prescriptionPhotoPath: "" });
-                              }}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <Camera className="w-8 h-8 text-muted-foreground mb-2" />
-                            <span className="text-sm text-muted-foreground">Select Photo</span>
-                          </>
-                        )}
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-12 w-12"
-                        onClick={() => {
-                          if (editFileInputRef.current) {
-                            editFileInputRef.current.setAttribute('capture', 'environment');
-                            editFileInputRef.current.click();
-                          }
-                        }}
-                      >
-                        <Camera className="w-5 h-5" />
-                      </Button>
-                    </div>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      ref={editFileInputRef}
-                      onChange={(e) => handleFileChange(e, true)}
-                    />
-                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsEditMode(false)}>Cancel</Button>
-                  <Button type="submit" disabled={updateMutation.isPending || uploadMutation.isPending}>
+                  <Button type="submit" disabled={updateMutation.isPending}>
                     {updateMutation.isPending ? "Updating..." : "Update Record"}
                   </Button>
                 </DialogFooter>
@@ -825,7 +717,11 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Date</Label>
-                    <p className="text-lg font-medium">{format(new Date(selectedCustomer.date), 'dd/MM/yyyy')}</p>
+                    <p className="text-lg font-medium">
+                      {selectedCustomer.date.includes('/')
+                        ? selectedCustomer.date
+                        : format(new Date(selectedCustomer.date), 'dd/MM/yyyy')}
+                    </p>
                   </div>
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Name</Label>
@@ -909,25 +805,6 @@ export default function CustomersPage() {
                       <p className="whitespace-pre-wrap mt-1">{selectedCustomer.notes}</p>
                     </div>
                   )}
-                  
-                  {selectedCustomer.prescriptionPhotoPath && (
-                    <div className="col-span-2 border-t pt-4">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase block mb-2">Prescription Photo</Label>
-                      <div 
-                        className="relative group cursor-zoom-in rounded-xl overflow-hidden border bg-muted"
-                        onClick={() => setIsPhotoViewerOpen(true)}
-                      >
-                        <img 
-                          src={selectedCustomer.prescriptionPhotoPath} 
-                          alt="Prescription" 
-                          className="w-full h-auto max-h-[300px] object-contain transition-transform group-hover:scale-[1.02]" 
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                          <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
                   <Button 
@@ -947,83 +824,16 @@ export default function CustomersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Photo Viewer Dialog */}
-      <Dialog open={isPhotoViewerOpen} onOpenChange={setIsPhotoViewerOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
-          <VisuallyHidden>
-            <DialogTitle>Prescription Photo Viewer</DialogTitle>
-          </VisuallyHidden>
-          <div className="relative w-full h-full flex flex-col">
-            <div className="absolute top-4 right-4 z-50 flex gap-2">
-              <Button 
-                size="icon" 
-                variant="secondary" 
-                className="rounded-full bg-white/10 hover:bg-white/20 border-none text-white"
-                onClick={() => setIsPhotoViewerOpen(false)}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            <div className="flex-1 flex items-center justify-center p-4">
-              <QuickPinchZoom onUpdate={({ x, y, scale }) => {
-                const img = document.getElementById('zoom-img');
-                if (img) img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-              }}>
-                <img 
-                  id="zoom-img"
-                  src={selectedCustomer?.prescriptionPhotoPath} 
-                  alt="Full Prescription" 
-                  className="max-w-full max-h-full object-contain"
-                />
-              </QuickPinchZoom>
-            </div>
-            
-            <div className="bg-black/50 backdrop-blur-md p-4 flex items-center justify-between text-white border-t border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold leading-none">{selectedCustomer?.name}</p>
-                  <p className="text-xs text-white/60 mt-1">{format(new Date(selectedCustomer?.date || new Date()), 'dd/MM/yyyy')}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-transparent border-white/20 text-white hover:bg-white/10"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(selectedCustomer.prescriptionPhotoPath);
-                      const blob = await response.blob();
-                      const url = window.URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.download = `prescription_${selectedCustomer.name}.jpg`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      window.URL.revokeObjectURL(url);
-                    } catch (error) {
-                      toast({ title: "Download Failed", variant: "destructive" });
-                    }
-                  }}
-                >
-                  <Upload className="w-4 h-4 mr-2" /> Download
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
 function CustomerCard({ customer, onClick }: { customer: any, onClick: () => void }) {
   const { isUnlocked } = useWholesale();
+  const displayDate = customer.date.includes('/')
+    ? customer.date
+    : format(new Date(customer.date), 'dd/MM/yyyy');
+
   return (
     <Card 
       className="group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50" 
@@ -1037,7 +847,7 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <h4 className="font-bold text-lg truncate leading-tight">{customer.name}</h4>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{format(new Date(customer.date), 'dd/MM/yyyy')}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{displayDate}</span>
             </div>
             <div className="flex items-center gap-3 mt-1">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -1054,9 +864,6 @@ function CustomerCard({ customer, onClick }: { customer: any, onClick: () => voi
           </div>
         </div>
         
-        {customer.prescriptionPhotoPath && (
-          <div className="h-1 bg-primary/20 group-hover:bg-primary transition-colors" />
-        )}
       </CardContent>
     </Card>
   );

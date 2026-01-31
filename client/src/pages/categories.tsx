@@ -125,7 +125,7 @@ export default function CategoriesPage() {
     if (pressPos.current) {
       const dx = Math.abs(x - pressPos.current.x);
       const dy = Math.abs(y - pressPos.current.y);
-      if (dx > 10 || dy > 10) {
+      if (dx > 20 || dy > 20) {
         if (pressTimer.current) {
           clearTimeout(pressTimer.current);
         }
@@ -466,6 +466,24 @@ export default function CategoriesPage() {
                         onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
                       />
                     </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>SPH (Optional)</Label>
+                    <Input
+                      value={editingNode?.sph || ''}
+                      onChange={e => setEditingNode(prev => ({ ...prev, sph: e.target.value }))}
+                      placeholder="e.g. -2.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CYL (Optional)</Label>
+                    <Input
+                      value={editingNode?.cyl || ''}
+                      onChange={e => setEditingNode(prev => ({ ...prev, cyl: e.target.value }))}
+                      placeholder="e.g. -1.00"
+                    />
                   </div>
                 </div>
               </>

@@ -86,6 +86,14 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.post("/api/settings/reset-master-once", async (req, res) => {
+    const s = await storage.getSettings();
+    if (s) {
+      await db.update(settings).set({ masterPasswordHash: null }).where(eq(settings.id, s.id));
+    }
+    res.json({ success: true, message: "Master password cleared. You can now set a new one in Settings." });
+  });
+
   app.post("/api/settings/reset", async (req, res) => {
     const { masterPassword } = req.body;
     const s = await storage.getSettings();
@@ -127,7 +135,7 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  // Auth Middleware
+  // Categories
   async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
     const password = req.headers["x-wholesale-password"] as string;
     const s = await storage.getSettings();
@@ -142,6 +150,7 @@ export async function registerRoutes(
     next();
   }
 
+  // Categories
   app.get(api.categories.list.path, async (req, res) => {
     const categoriesList = await storage.getCategories();
     res.json(categoriesList);

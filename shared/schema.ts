@@ -19,6 +19,8 @@ export const categories = pgTable("categories", {
   type: text("type").notNull().default("FOLDER"), // "FOLDER" or "ITEM"
   customerPrice: real("customer_price"),
   wholesalePrice: real("wholesale_price"),
+  sph: text("sph"),
+  cyl: text("cyl"),
   sortOrder: integer("sort_order").default(0),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

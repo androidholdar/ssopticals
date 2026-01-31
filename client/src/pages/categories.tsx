@@ -87,6 +87,17 @@ export default function CategoriesPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentPath]);
 
+  // Cancel long-press if the window is scrolled
+  useEffect(() => {
+    const handleScroll = () => {
+      if (pressTimer.current) {
+        clearTimeout(pressTimer.current);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
+
   const handleAdd = (parentId: number | null) => {
     setEditingNode({ type: 'FOLDER', parentId, name: '', sortOrder: 0 });
     setIsDialogOpen(true);

@@ -370,8 +370,6 @@ export default function CategoriesPage() {
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
                           <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
                           {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>}
-                          {node.sph && <span className="text-muted-foreground bg-secondary/50 px-1.5 rounded">SPH: {node.sph}</span>}
-                          {node.cyl && <span className="text-muted-foreground bg-secondary/50 px-1.5 rounded">CYL: {node.cyl}</span>}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Category</span>
@@ -470,24 +468,6 @@ export default function CategoriesPage() {
                         onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
                       />
                     </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>SPH</Label>
-                    <Input
-                      value={editingNode?.sph || ''}
-                      onChange={e => setEditingNode(prev => ({ ...prev, sph: e.target.value }))}
-                      placeholder="e.g. -1.00 to +2.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CYL</Label>
-                    <Input
-                      value={editingNode?.cyl || ''}
-                      onChange={e => setEditingNode(prev => ({ ...prev, cyl: e.target.value }))}
-                      placeholder="e.g. 0.00 to -2.00"
-                    />
                   </div>
                 </div>
               </>

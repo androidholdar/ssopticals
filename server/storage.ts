@@ -16,7 +16,7 @@ import {
   type UpdateCustomerRequest,
   type CreatePresetRequest,
 } from "@shared/schema";
-import { eq, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Settings
@@ -38,7 +38,6 @@ export interface IStorage {
   createCustomer(customer: CreateCustomerRequest): Promise<Customer>;
   updateCustomer(id: number, updates: UpdateCustomerRequest): Promise<Customer>;
   deleteCustomer(id: number): Promise<void>;
-  deleteCustomers(ids: number[]): Promise<void>;
 
   // Presets
   getPresets(): Promise<(FormPreset & { fields: FormPresetField[] })[]>;
@@ -161,10 +160,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCustomer(id: number): Promise<void> {
     await db.delete(customers).where(eq(customers.id, id));
-  }
-
-  async deleteCustomers(ids: number[]): Promise<void> {
-    await db.delete(customers).where(inArray(customers.id, ids));
   }
 
   // Presets

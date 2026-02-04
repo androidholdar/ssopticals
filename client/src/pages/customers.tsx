@@ -7,10 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Lock, CheckSquare, Square } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Lock } from "lucide-react";
 import { format, isToday, isYesterday, parse } from "date-fns";
-import { Checkbox } from "@/components/ui/checkbox";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useWholesale } from "@/hooks/use-wholesale";
@@ -37,29 +35,6 @@ export default function CustomersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  const toggleSelection = (id: number) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const handleBulkDelete = async () => {
-    if (!selectedIds.length) return;
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} customer records?`)) return;
-
-    try {
-      await apiRequest("POST", "/api/customers/bulk-delete", { ids: selectedIds });
-      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-      setSelectedIds([]);
-      setIsSelectionMode(false);
-      toast({ title: "Success", description: `${selectedIds.length} records deleted.` });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to delete customers.", variant: "destructive" });
-    }
-  };
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
     date: format(new Date(), 'dd/MM/yyyy'),
@@ -592,26 +567,11 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-display font-bold">Customers</h1>
           <p className="text-muted-foreground">Manage customer records and prescriptions.</p>
         </div>
-        <div className="flex gap-2">
-          {isSelectionMode ? (
-            <>
-              <Button variant="outline" onClick={() => { setIsSelectionMode(false); setSelectedIds([]); }}>
-                Cancel
-              </Button>
-              {isUnlocked && (
-                <Button variant="destructive" onClick={handleBulkDelete} disabled={selectedIds.length === 0}>
-                  <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedIds.length})
-                </Button>
-              )}
-            </>
-          ) : (
-            isUnlocked && (
-              <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
-                <Plus className="w-4 h-4 mr-2" /> New Customer
-              </Button>
-            )
-          )}
-        </div>
+        {isUnlocked && (
+          <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
+            <Plus className="w-4 h-4 mr-2" /> New Customer
+          </Button>
+        )}
       </div>
 
       <div className="relative">
@@ -629,20 +589,7 @@ export default function CustomersPage() {
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Today</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.today.map(c => (
-                <CustomerCard
-                  key={c.id}
-                  customer={c}
-                  onClick={() => setSelectedCustomer(c)}
-                  isSelectionMode={isSelectionMode}
-                  isSelected={selectedIds.includes(c.id)}
-                  onSelect={toggleSelection}
-                  onLongPress={() => {
-                    setIsSelectionMode(true);
-                    setSelectedIds([c.id]);
-                  }}
-                />
-              ))}
+              {grouped.today.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
             </div>
           </section>
         )}
@@ -651,20 +598,7 @@ export default function CustomersPage() {
           <section>
              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Yesterday</h3>
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.yesterday.map(c => (
-                <CustomerCard
-                  key={c.id}
-                  customer={c}
-                  onClick={() => setSelectedCustomer(c)}
-                  isSelectionMode={isSelectionMode}
-                  isSelected={selectedIds.includes(c.id)}
-                  onSelect={toggleSelection}
-                  onLongPress={() => {
-                    setIsSelectionMode(true);
-                    setSelectedIds([c.id]);
-                  }}
-                />
-              ))}
+              {grouped.yesterday.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
             </div>
           </section>
         )}
@@ -673,20 +607,7 @@ export default function CustomersPage() {
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Older</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.older.map(c => (
-                <CustomerCard
-                  key={c.id}
-                  customer={c}
-                  onClick={() => setSelectedCustomer(c)}
-                  isSelectionMode={isSelectionMode}
-                  isSelected={selectedIds.includes(c.id)}
-                  onSelect={toggleSelection}
-                  onLongPress={() => {
-                    setIsSelectionMode(true);
-                    setSelectedIds([c.id]);
-                  }}
-                />
-              ))}
+              {grouped.older.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
             </div>
           </section>
         )}
@@ -913,67 +834,20 @@ export default function CustomersPage() {
   );
 }
 
-function CustomerCard({
-  customer,
-  onClick,
-  isSelectionMode,
-  isSelected,
-  onSelect,
-  onLongPress
-}: {
-  customer: any,
-  onClick: () => void,
-  isSelectionMode: boolean,
-  isSelected: boolean,
-  onSelect: (id: number) => void,
-  onLongPress: () => void
-}) {
+function CustomerCard({ customer, onClick }: { customer: any, onClick: () => void }) {
   const { isUnlocked } = useWholesale();
-  const timerRef = useRef<NodeJS.Timeout>();
-
-  const handleTouchStart = () => {
-    timerRef.current = setTimeout(() => {
-      onLongPress();
-      window.navigator.vibrate?.(50);
-    }, 700);
-  };
-
-  const handleTouchEnd = () => {
-    clearTimeout(timerRef.current);
-  };
-
   const displayDate = customer.date.includes('/')
     ? customer.date
     : format(new Date(customer.date), 'dd/MM/yyyy');
 
   return (
     <Card 
-      className={cn(
-        "group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50 relative",
-        isSelected && "border-primary bg-primary/5 shadow-md shadow-primary/10"
-      )}
-      onClick={() => isSelectionMode ? onSelect(customer.id) : onClick()}
-      onMouseDown={handleTouchStart}
-      onMouseUp={handleTouchEnd}
-      onMouseLeave={handleTouchEnd}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      className="group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50" 
+      onClick={onClick}
     >
       <CardContent className="p-0">
-        <div className={cn("flex items-center gap-4 p-4 transition-all", isSelectionMode && "pl-14")}>
-          {isSelectionMode && (
-            <div className="absolute left-4 top-1/2 -translate-y-1/2" onClick={(e) => e.stopPropagation()}>
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={() => onSelect(customer.id)}
-                className="w-6 h-6 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-              />
-            </div>
-          )}
-          <div className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
-            isSelected ? "bg-primary text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
-          )}>
+        <div className="flex items-center gap-4 p-4">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
             <User className="w-6 h-6" />
           </div>
           <div className="flex-1 min-w-0">
@@ -995,6 +869,7 @@ function CustomerCard({
             </div>
           </div>
         </div>
+        
       </CardContent>
     </Card>
   );

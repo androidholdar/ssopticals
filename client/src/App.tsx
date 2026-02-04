@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
-import { Redirect } from "wouter";
+import Dashboard from "@/pages/dashboard";
 import CustomersPage from "@/pages/customers";
 import CategoriesPage from "@/pages/categories";
 import SettingsPage from "@/pages/settings";
@@ -14,9 +14,7 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/">
-          <Redirect to="/customers" />
-        </Route>
+        <Route path="/" component={Dashboard} />
         <Route path="/customers" component={CustomersPage} />
         <Route path="/categories" component={CategoriesPage} />
         <Route path="/settings" component={SettingsPage} />

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ type GroupedCustomers = {
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
-  const { isUnlocked } = useWholesale();
+  const { isUnlocked, wholesalePassword } = useWholesale();
   const { data: customers = [], isLoading } = useCustomers({ search: isUnlocked ? search : "" });
   const { data: presets = [] } = usePresets();
   const createMutation = useCreateCustomer();

@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer } from "@/hooks/use-customers";
+import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer, useBulkDeleteCustomers } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -30,9 +31,13 @@ export default function CustomersPage() {
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
+  const bulkDeleteMutation = useBulkDeleteCustomers();
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [newCustomer, setNewCustomer] = useState<any>({
@@ -208,6 +213,39 @@ export default function CustomersPage() {
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete customer.", variant: "destructive" });
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} selected customer records?`)) return;
+    try {
+      await bulkDeleteMutation.mutateAsync(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+      toast({ title: "Success", description: "Selected records deleted." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete records.", variant: "destructive" });
+    }
+  };
+
+  const toggleSelection = (id: number) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+    if (newSelected.size === 0) setIsSelectionMode(false);
+  };
+
+  const handleLongPress = (id: number) => {
+    if (!isUnlocked) return;
+    setIsSelectionMode(true);
+    const newSelected = new Set(selectedIds);
+    newSelected.add(id);
+    setSelectedIds(newSelected);
+    window.navigator.vibrate?.(50);
   };
 
   const renderField = (key: string, label: string, isEdit: boolean = false) => {
@@ -567,11 +605,22 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-display font-bold">Customers</h1>
           <p className="text-muted-foreground">Manage customer records and prescriptions.</p>
         </div>
-        {isUnlocked && (
-          <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
-            <Plus className="w-4 h-4 mr-2" /> New Customer
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {isSelectionMode && isUnlocked ? (
+            <>
+              <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteMutation.isPending}>
+                <Trash2 className="w-4 h-4 mr-2" /> Delete Selected ({selectedIds.size})
+              </Button>
+              <Button variant="outline" onClick={() => { setIsSelectionMode(false); setSelectedIds(new Set()); }}>
+                Cancel
+              </Button>
+            </>
+          ) : isUnlocked && (
+            <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
+              <Plus className="w-4 h-4 mr-2" /> New Customer
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="relative">
@@ -589,7 +638,16 @@ export default function CustomersPage() {
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Today</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.today.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
+              {grouped.today.map(c => (
+                <CustomerCard
+                  key={c.id}
+                  customer={c}
+                  onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
+                  onLongPress={() => handleLongPress(c.id)}
+                  isSelected={selectedIds.has(c.id)}
+                  isSelectionMode={isSelectionMode}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -598,7 +656,16 @@ export default function CustomersPage() {
           <section>
              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Yesterday</h3>
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.yesterday.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
+              {grouped.yesterday.map(c => (
+                <CustomerCard
+                  key={c.id}
+                  customer={c}
+                  onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
+                  onLongPress={() => handleLongPress(c.id)}
+                  isSelected={selectedIds.has(c.id)}
+                  isSelectionMode={isSelectionMode}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -607,7 +674,16 @@ export default function CustomersPage() {
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Older</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.older.map(c => <CustomerCard key={c.id} customer={c} onClick={() => setSelectedCustomer(c)} />)}
+              {grouped.older.map(c => (
+                <CustomerCard
+                  key={c.id}
+                  customer={c}
+                  onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
+                  onLongPress={() => handleLongPress(c.id)}
+                  isSelected={selectedIds.has(c.id)}
+                  isSelectionMode={isSelectionMode}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -834,22 +910,58 @@ export default function CustomersPage() {
   );
 }
 
-function CustomerCard({ customer, onClick }: { customer: any, onClick: () => void }) {
+function CustomerCard({
+  customer,
+  onClick,
+  onLongPress,
+  isSelected,
+  isSelectionMode
+}: {
+  customer: any,
+  onClick: () => void,
+  onLongPress: () => void,
+  isSelected: boolean,
+  isSelectionMode: boolean
+}) {
   const { isUnlocked } = useWholesale();
   const displayDate = customer.date.includes('/')
     ? customer.date
     : format(new Date(customer.date), 'dd/MM/yyyy');
 
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleStart = () => {
+    longPressTimer.current = setTimeout(onLongPress, 500);
+  };
+
+  const handleEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
   return (
     <Card 
-      className="group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50" 
+      className={cn(
+        "group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50",
+        isSelected && "border-primary bg-primary/5 ring-1 ring-primary"
+      )}
       onClick={onClick}
+      onMouseDown={handleStart}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onTouchStart={handleStart}
+      onTouchEnd={handleEnd}
     >
       <CardContent className="p-0">
         <div className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-            <User className="w-6 h-6" />
-          </div>
+          {isSelectionMode ? (
+            <div className="w-12 h-12 flex items-center justify-center">
+              <Checkbox checked={isSelected} onCheckedChange={onClick} />
+            </div>
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+              <User className="w-6 h-6" />
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <h4 className="font-bold text-lg truncate leading-tight">{customer.name}</h4>

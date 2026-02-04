@@ -64,6 +64,30 @@ export function useCreateCustomer() {
   });
 }
 
+export function useBulkDeleteCustomers() {
+  const queryClient = useQueryClient();
+  const { wholesalePassword } = useWholesale();
+
+  return useMutation({
+    mutationFn: async (ids: number[]) => {
+      const res = await fetch("/api/customers/bulk-delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Wholesale-Password": wholesalePassword || "",
+        },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) {
+        if (res.status === 403) throw new Error("Permission denied: App is locked.");
+        throw new Error("Failed to delete customers");
+      }
+      return await res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
+  });
+}
+
 export function useUpdateCustomer() {
   const queryClient = useQueryClient();
   const { wholesalePassword } = useWholesale();

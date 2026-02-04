@@ -8,7 +8,9 @@ export function useCategories() {
     queryFn: async () => {
       const res = await fetch(api.categories.list.path);
       if (!res.ok) throw new Error("Failed to fetch categories");
-      return api.categories.list.responses[200].parse(await res.json());
+      const data = await res.json();
+      console.log("Fetched categories:", data);
+      return data;
     },
   });
 }

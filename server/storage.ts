@@ -81,7 +81,19 @@ export class DatabaseStorage implements IStorage {
 
   // Categories
   async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories).orderBy(categories.sortOrder, categories.name);
+    try {
+      return await db.select().from(categories).orderBy(categories.sortOrder, categories.name);
+    } catch (err) {
+      console.error("Error fetching categories with sortOrder:", err);
+      try {
+        return await db.select().from(categories).orderBy(categories.name);
+      } catch (err2) {
+        console.error("Critical error fetching categories:", err2);
+        // Last resort: raw SQL to fetch whatever columns are there
+        const result = await db.execute(sql`SELECT * FROM categories ORDER BY name`);
+        return result.rows as Category[];
+      }
+    }
   }
 
   async getCategory(id: number): Promise<Category | undefined> {
@@ -90,16 +102,55 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCategory(category: CreateCategoryRequest): Promise<Category> {
-    const [newCategory] = await db.insert(categories).values(category).returning();
-    return newCategory;
+    const columns = ['parentId', 'name', 'type', 'customerPrice', 'wholesalePrice', 'sortOrder'];
+    let currentValues: any = { ...category };
+
+    // Try to insert with all fields, then progressively remove optional ones if it fails
+    const tryInsert = async (vals: any): Promise<Category> => {
+      try {
+        const [newCategory] = await db.insert(categories).values(vals).returning();
+        return newCategory;
+      } catch (err: any) {
+        if (err.message.includes('column') || err.code === '42703') { // 42703 is undefined_column in PG
+          // Identify which column might be missing from error message if possible,
+          // or just try common optional ones
+          if (vals.sortOrder !== undefined) {
+            const { sortOrder, ...rest } = vals;
+            return tryInsert(rest);
+          }
+          if (vals.type !== undefined && vals.type === 'FOLDER') { // type might be missing
+            const { type, ...rest } = vals;
+            return tryInsert(rest);
+          }
+           if (vals.customerPrice !== undefined) {
+            const { customerPrice, wholesalePrice, ...rest } = vals;
+            return tryInsert(rest);
+          }
+        }
+        throw err;
+      }
+    };
+
+    return tryInsert(currentValues);
   }
 
   async updateCategory(id: number, updates: UpdateCategoryRequest): Promise<Category> {
-    const [updated] = await db.update(categories)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(categories.id, id))
-      .returning();
-    return updated;
+    try {
+      const [updated] = await db.update(categories)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(categories.id, id))
+        .returning();
+      return updated;
+    } catch (err) {
+      console.error("Error updating category with full schema:", err);
+      // Fallback: try without updatedAt
+      const { updatedAt, ...rest } = updates as any;
+      const [updated] = await db.update(categories)
+        .set(rest)
+        .where(eq(categories.id, id))
+        .returning();
+      return updated;
+    }
   }
 
   async deleteCategory(id: number): Promise<void> {

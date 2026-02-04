@@ -92,7 +92,13 @@ export const formPresetsRelations = relations(formPresets, ({ many }) => ({
 // === ZOD SCHEMAS ===
 
 export const insertSettingsSchema = createInsertSchema(settings).omit({ id: true, updatedAt: true });
-export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, updatedAt: true });
+export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, updatedAt: true }).extend({
+  parentId: z.number().nullable().optional(),
+  type: z.string().optional(),
+  customerPrice: z.number().nullable().optional(),
+  wholesalePrice: z.number().nullable().optional(),
+  sortOrder: z.number().optional(),
+});
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true });
 export const insertFormPresetSchema = createInsertSchema(formPresets).omit({ id: true });
 export const insertFormPresetFieldSchema = createInsertSchema(formPresetFields).omit({ id: true });

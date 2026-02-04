@@ -59,41 +59,6 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.post("/api/settings/master-password", async (req, res) => {
-    const { password } = req.body;
-    const s = await storage.getSettings();
-
-    if (s?.masterPasswordHash) {
-      return res.status(400).json({
-        message: "Master password already set. It cannot be changed."
-      });
-    }
-
-    const hash = hashPassword(password);
-
-    if (s) {
-      await db
-        .update(settings)
-        .set({ masterPasswordHash: hash })
-        .where(eq(settings.id, s.id));
-    } else {
-      await db.insert(settings).values({
-        wholesalePasswordHash: "",
-        masterPasswordHash: hash
-      });
-    }
-
-    res.json({ success: true });
-  });
-
-  app.post("/api/settings/reset-master-once", async (req, res) => {
-    const s = await storage.getSettings();
-    if (s) {
-      await db.update(settings).set({ masterPasswordHash: null }).where(eq(settings.id, s.id));
-    }
-    res.json({ success: true, message: "Master password cleared. You can now set a new one in Settings." });
-  });
-
   app.post("/api/settings/reset", async (req, res) => {
     const { masterPassword } = req.body;
     const s = await storage.getSettings();
@@ -135,7 +100,7 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  // Categories
+  // Auth Middleware
   async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
     const password = req.headers["x-wholesale-password"] as string;
     const s = await storage.getSettings();
@@ -150,7 +115,6 @@ export async function registerRoutes(
     next();
   }
 
-  // Categories
   app.get(api.categories.list.path, async (req, res) => {
     const categoriesList = await storage.getCategories();
     res.json(categoriesList);
@@ -224,6 +188,13 @@ export async function registerRoutes(
 
   app.delete(api.customers.delete.path, checkWholesaleAuth, async (req, res) => {
     await storage.deleteCustomer(Number(req.params.id));
+    res.status(204).send();
+  });
+
+  app.post("/api/customers/bulk-delete", checkWholesaleAuth, async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) return res.status(400).json({ message: "Invalid IDs" });
+    await storage.deleteCustomers(ids.map(Number));
     res.status(204).send();
   });
 

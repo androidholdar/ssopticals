@@ -102,7 +102,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCategory(category: CreateCategoryRequest): Promise<Category> {
-    const columns = ['parentId', 'name', 'type', 'customerPrice', 'wholesalePrice', 'sortOrder'];
     let currentValues: any = { ...category };
 
     // Try to insert with all fields, then progressively remove optional ones if it fails
@@ -111,19 +110,14 @@ export class DatabaseStorage implements IStorage {
         const [newCategory] = await db.insert(categories).values(vals).returning();
         return newCategory;
       } catch (err: any) {
-        if (err.message.includes('column') || err.code === '42703') { // 42703 is undefined_column in PG
-          // Identify which column might be missing from error message if possible,
-          // or just try common optional ones
-          if (vals.sortOrder !== undefined) {
-            const { sortOrder, ...rest } = vals;
-            return tryInsert(rest);
-          }
-          if (vals.type !== undefined && vals.type === 'FOLDER') { // type might be missing
-            const { type, ...rest } = vals;
-            return tryInsert(rest);
-          }
-           if (vals.customerPrice !== undefined) {
-            const { customerPrice, wholesalePrice, ...rest } = vals;
+        // If column error, try removing fields one by one
+        if (err.message.includes('column') || err.code === '42703') {
+          const keys = Object.keys(vals);
+          // Prioritize keeping 'name'
+          const fieldToRemove = keys.find(k => k !== 'name' && k !== 'id');
+          if (fieldToRemove) {
+            const { [fieldToRemove]: _, ...rest } = vals;
+            console.log(`Retrying category creation without field: ${fieldToRemove}`);
             return tryInsert(rest);
           }
         }

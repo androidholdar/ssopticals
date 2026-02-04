@@ -60,11 +60,13 @@ export default function CategoriesPage() {
   // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
   
-  const displayCategories = categories.filter(c => {
-    const nameMatches = c.name.toLowerCase().includes(search.toLowerCase());
-    const isChild = c.parentId === currentId;
+  const displayCategories = categories.filter((c: any) => {
+    const nameMatches = (c.name || "").toLowerCase().includes(search.toLowerCase());
+    const isChild = (currentId === null)
+      ? (!c.parentId || c.parentId === 0)
+      : (c.parentId === currentId);
     return isChild && nameMatches;
-  }).sort((a, b) => {
+  }).sort((a: any, b: any) => {
     if (a.type !== b.type) return a.type === 'FOLDER' ? -1 : 1;
     return (a.sortOrder || 0) - (b.sortOrder || 0);
   });
@@ -151,9 +153,9 @@ export default function CategoriesPage() {
   };
 
   const handleMoveUp = async (node: Category) => {
-    const currentIndex = displayCategories.findIndex(c => c.id === node.id);
+    const currentIndex = displayCategories.findIndex((c: any) => c.id === node.id);
     if (currentIndex > 0) {
-      const prevNode = displayCategories[currentIndex - 1];
+      const prevNode: any = displayCategories[currentIndex - 1];
       const currentSort = node.sortOrder || 0;
       const prevSort = prevNode.sortOrder || 0;
 
@@ -164,9 +166,9 @@ export default function CategoriesPage() {
   };
 
   const handleMoveDown = async (node: Category) => {
-    const currentIndex = displayCategories.findIndex(c => c.id === node.id);
+    const currentIndex = displayCategories.findIndex((c: any) => c.id === node.id);
     if (currentIndex < displayCategories.length - 1) {
-      const nextNode = displayCategories[currentIndex + 1];
+      const nextNode: any = displayCategories[currentIndex + 1];
       const currentSort = node.sortOrder || 0;
       const nextSort = nextNode.sortOrder || 0;
 
@@ -189,14 +191,15 @@ export default function CategoriesPage() {
 
     try {
       if ('id' in editingNode && editingNode.id) {
-        await updateMutation.mutateAsync({ id: editingNode.id, ...editingNode });
+        const { id, ...updates } = editingNode as any;
+        await updateMutation.mutateAsync({ id, ...updates });
       } else {
         await createMutation.mutateAsync(editingNode as any);
       }
       setIsDialogOpen(false);
       setEditingNode(null);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to save category.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to save category.", variant: "destructive" });
     }
   };
 
@@ -277,8 +280,8 @@ export default function CategoriesPage() {
         {currentPath.length > 0 && (
           <div className="px-4 py-2 bg-muted/10 border-b flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-primary cursor-pointer" onClick={() => setCurrentPath([])}>Lens</span>
-            {currentPath.map((id, index) => {
-              const cat = categories.find(c => c.id === id);
+            {currentPath.map((id: number, index: number) => {
+              const cat = categories.find((c: any) => c.id === id);
               return (
                 <div key={id} className="flex items-center gap-2">
                   <ChevronRight className="w-3 h-3" />
@@ -289,7 +292,7 @@ export default function CategoriesPage() {
                     )}
                     onClick={() => setCurrentPath(currentPath.slice(0, index + 1))}
                   >
-                    {cat?.name}
+                    {(cat as any)?.name}
                   </span>
                 </div>
               );
@@ -305,7 +308,7 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2">
-              {displayCategories.map(node => (
+              {displayCategories.map((node: any) => (
                 <div 
                   key={node.id}
                   className={cn(
@@ -366,12 +369,14 @@ export default function CategoriesPage() {
                           </span>
                         )}
                       </div>
-                      {node.type === 'ITEM' ? (
+                      {node.type === 'ITEM' || node.customerPrice !== null ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
-                          <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
-                          {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>}
-                          {node.sph && <span className="text-muted-foreground bg-secondary/50 px-1.5 rounded">SPH: {node.sph}</span>}
-                          {node.cyl && <span className="text-muted-foreground bg-secondary/50 px-1.5 rounded">CYL: {node.cyl}</span>}
+                          {node.customerPrice !== undefined && (
+                            <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
+                          )}
+                          {isUnlocked && node.wholesalePrice !== undefined && (
+                            <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Category</span>
@@ -470,24 +475,6 @@ export default function CategoriesPage() {
                         onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
                       />
                     </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>SPH</Label>
-                    <Input
-                      value={editingNode?.sph || ''}
-                      onChange={e => setEditingNode(prev => ({ ...prev, sph: e.target.value }))}
-                      placeholder="e.g. -1.00 to +2.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CYL</Label>
-                    <Input
-                      value={editingNode?.cyl || ''}
-                      onChange={e => setEditingNode(prev => ({ ...prev, cyl: e.target.value }))}
-                      placeholder="e.g. 0.00 to -2.00"
-                    />
                   </div>
                 </div>
               </>

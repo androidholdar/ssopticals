@@ -112,7 +112,7 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         res.status(400).json({ message: err.errors[0].message });
       } else {
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: err instanceof Error ? err.message : "Internal server error" });
       }
     }
   });
@@ -180,6 +180,7 @@ export async function registerRoutes(
     await storage.deleteCustomersBulk(ids);
     res.json({ success: true });
   });
+
 
   // Presets
   app.get(api.presets.list.path, async (req, res) => {

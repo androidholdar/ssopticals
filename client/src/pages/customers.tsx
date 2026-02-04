@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ type GroupedCustomers = {
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
-  const { isUnlocked } = useWholesale();
+  const { isUnlocked, wholesalePassword } = useWholesale();
   const { data: customers = [], isLoading } = useCustomers({ search: isUnlocked ? search : "" });
   const { data: presets = [] } = usePresets();
   const createMutation = useCreateCustomer();
@@ -46,12 +46,22 @@ export default function CustomersPage() {
     );
   };
 
+  const selectAll = () => {
+    if (selectedIds.length === customers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(customers.map(c => c.id));
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (!selectedIds.length) return;
     if (!confirm(`Are you sure you want to delete ${selectedIds.length} customer records?`)) return;
 
     try {
-      await apiRequest("POST", "/api/customers/bulk-delete", { ids: selectedIds });
+      await apiRequest("POST", "/api/customers/bulk-delete", { ids: selectedIds }, {
+        "X-Wholesale-Password": wholesalePassword || ""
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       setSelectedIds([]);
       setIsSelectionMode(false);
@@ -595,6 +605,9 @@ export default function CustomersPage() {
         <div className="flex gap-2">
           {isSelectionMode ? (
             <>
+              <Button variant="outline" onClick={selectAll} className="hidden sm:inline-flex">
+                {selectedIds.length === customers.length ? "Deselect All" : "Select All"}
+              </Button>
               <Button variant="outline" onClick={() => { setIsSelectionMode(false); setSelectedIds([]); }}>
                 Cancel
               </Button>
@@ -930,17 +943,44 @@ function CustomerCard({
 }) {
   const { isUnlocked } = useWholesale();
   const timerRef = useRef<NodeJS.Timeout>();
+  const touchPos = useRef<{ x: number, y: number } | null>(null);
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.MouseEvent | React.TouchEvent) => {
+    const x = 'clientX' in e ? e.clientX : e.touches[0].clientX;
+    const y = 'clientX' in e ? e.clientY : e.touches[0].clientY;
+    touchPos.current = { x, y };
+
     timerRef.current = setTimeout(() => {
       onLongPress();
       window.navigator.vibrate?.(50);
     }, 700);
   };
 
+  const handleTouchMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (touchPos.current) {
+      const x = 'clientX' in e ? e.clientX : e.touches[0].clientX;
+      const y = 'clientX' in e ? e.clientY : e.touches[0].clientY;
+      const dx = Math.abs(x - touchPos.current.x);
+      const dy = Math.abs(y - touchPos.current.y);
+      if (dx > 10 || dy > 10) {
+        clearTimeout(timerRef.current);
+      }
+    }
+  };
+
   const handleTouchEnd = () => {
     clearTimeout(timerRef.current);
+    touchPos.current = null;
   };
+
+  // Listen for scroll to cancel long-press
+  useEffect(() => {
+    const handleScroll = () => {
+      clearTimeout(timerRef.current);
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   const displayDate = customer.date.includes('/')
     ? customer.date
@@ -954,9 +994,11 @@ function CustomerCard({
       )}
       onClick={() => isSelectionMode ? onSelect(customer.id) : onClick()}
       onMouseDown={handleTouchStart}
+      onMouseMove={handleTouchMove}
       onMouseUp={handleTouchEnd}
       onMouseLeave={handleTouchEnd}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <CardContent className="p-0">

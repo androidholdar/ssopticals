@@ -372,9 +372,19 @@ export default function CategoriesPage() {
                         )}
                       </div>
                       {node.type === 'ITEM' ? (
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs items-center">
                           <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
                           {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>}
+                          {node.sph && (
+                            <span className="bg-secondary/50 px-1.5 py-0.5 rounded text-[10px] text-muted-foreground uppercase">
+                              SPH: {node.sph}
+                            </span>
+                          )}
+                          {node.cyl && (
+                            <span className="bg-secondary/50 px-1.5 py-0.5 rounded text-[10px] text-muted-foreground uppercase">
+                              CYL: {node.cyl}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Category</span>

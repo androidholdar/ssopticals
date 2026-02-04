@@ -29,6 +29,24 @@ export default function SettingsPage() {
   const [showMasterDialog, setShowMasterDialog] = useState(false);
   const [masterInput, setMasterInput] = useState("");
 
+  const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (masterPassword !== confirmMasterPassword) {
+      toast({ title: "Master passwords do not match", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await apiRequest("POST", "/api/settings/master-password", { password: masterPassword });
+      toast({ title: "Master Password Set", description: "Security reset protection enabled." });
+      setMasterPassword("");
+      setConfirmMasterPassword("");
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -168,6 +186,53 @@ export default function SettingsPage() {
                 </div>
               </div>
             </CardContent>
+          </Card>
+
+          <Card className="mt-6 border-destructive/20">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-destructive/10 rounded-lg">
+                  <Lock className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <CardTitle>Master Password</CardTitle>
+                  <CardDescription>
+                    {settings?.hasMasterPassword
+                      ? "Security protection is enabled. The master password cannot be changed."
+                      : "Security protection for resetting the wholesale password."}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            {!settings?.hasMasterPassword && (
+              <CardContent>
+                <form onSubmit={handleMasterPasswordSubmit} className="space-y-4 max-w-md">
+                  <div className="space-y-2">
+                    <Label>Master Password</Label>
+                    <Input
+                      type="password"
+                      value={masterPassword}
+                      onChange={e => setMasterPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Confirm Master Password</Label>
+                    <Input
+                      type="password"
+                      value={confirmMasterPassword}
+                      onChange={e => setConfirmMasterPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <Button type="submit" variant="destructive">
+                    Set Master Password
+                  </Button>
+                </form>
+              </CardContent>
+            )}
           </Card>
         </TabsContent>
         

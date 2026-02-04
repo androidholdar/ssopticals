@@ -59,6 +59,33 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.post("/api/settings/master-password", async (req, res) => {
+    const { password } = req.body;
+    const s = await storage.getSettings();
+
+    if (s?.masterPasswordHash) {
+      return res.status(400).json({
+        message: "Master password already set. It cannot be changed."
+      });
+    }
+
+    const hash = hashPassword(password);
+
+    if (s) {
+      await db
+        .update(settings)
+        .set({ masterPasswordHash: hash })
+        .where(eq(settings.id, s.id));
+    } else {
+      await db.insert(settings).values({
+        wholesalePasswordHash: "",
+        masterPasswordHash: hash
+      });
+    }
+
+    res.json({ success: true });
+  });
+
   app.post("/api/settings/reset", async (req, res) => {
     const { masterPassword } = req.body;
     const s = await storage.getSettings();

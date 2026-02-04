@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Users, Box, Settings as SettingsIcon, LogOut, Lock, Unlock } from "lucide-react";
+import { LayoutDashboard, Users, Box, Settings as SettingsIcon, LogOut, Lock, Unlock } from "lucide-react";
 import { useWholesale } from "@/hooks/use-wholesale";
 import { cn } from "@/lib/utils";
 import { useState } from "react";

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const { isUnlocked, lock, unlock } = useWholesale();
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [password, setPassword] = useState("");
@@ -39,46 +39,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const navItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/customers", label: "Customers", icon: Users },
     { href: "/categories", label: "Lens", icon: Box },
     { href: "/settings", label: "Settings", icon: SettingsIcon },
   ];
 
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe || isRightSwipe) {
-      const currentIndex = navItems.findIndex(item => item.href === location);
-      if (currentIndex !== -1) {
-        if (isLeftSwipe && currentIndex < navItems.length - 1) {
-          setLocation(navItems[currentIndex + 1].href);
-        } else if (isRightSwipe && currentIndex > 0) {
-          setLocation(navItems[currentIndex - 1].href);
-        }
-      }
-    }
-  };
-
   return (
-    <div
-      className="flex h-screen bg-muted/20"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
+    <div className="flex h-screen bg-muted/20">
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r flex flex-col hidden md:flex">
         <div className="p-6 border-b">

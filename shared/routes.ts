@@ -151,6 +151,15 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    bulkDelete: {
+      method: 'POST' as const,
+      path: '/api/customers/bulk-delete',
+      input: z.object({ ids: z.array(z.number()) }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        403: errorSchemas.unauthorized,
+      },
+    },
     uploadPhoto: {
       method: 'POST' as const,
       path: '/api/customers/upload',

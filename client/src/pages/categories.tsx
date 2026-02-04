@@ -15,7 +15,9 @@ import {
   ChevronLeft,
   IndianRupee, 
   Box,
-  Search
+  Search,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -53,6 +55,7 @@ export default function CategoriesPage() {
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const [longPressedId, setLongPressedId] = useState<number | null>(null);
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
+  const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
   // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
@@ -114,17 +117,63 @@ export default function CategoriesPage() {
     setLongPressedId(null);
   };
 
-  const handlePressStart = (id: number) => {
+  const handlePressStart = (id: number, e: React.MouseEvent | React.TouchEvent) => {
+    const coords = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
+    touchStartRef.current = coords;
+
     pressTimer.current = setTimeout(() => {
       setLongPressedId(id);
       window.navigator.vibrate?.(50);
     }, 500);
   };
 
+  const handlePressMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const coords = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
+
+    const dx = Math.abs(coords.x - touchStartRef.current.x);
+    const dy = Math.abs(coords.y - touchStartRef.current.y);
+
+    if (dx > 10 || dy > 10) {
+      if (pressTimer.current) clearTimeout(pressTimer.current);
+    }
+  };
+
   const handlePressEnd = () => {
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
+    touchStartRef.current = null;
+  };
+
+  const handleMoveUp = async (node: Category) => {
+    const currentIndex = displayCategories.findIndex(c => c.id === node.id);
+    if (currentIndex > 0) {
+      const prevNode = displayCategories[currentIndex - 1];
+      const currentSort = node.sortOrder || 0;
+      const prevSort = prevNode.sortOrder || 0;
+
+      await updateMutation.mutateAsync({ id: node.id, sortOrder: prevSort });
+      await updateMutation.mutateAsync({ id: prevNode.id, sortOrder: currentSort });
+    }
+    setLongPressedId(null);
+  };
+
+  const handleMoveDown = async (node: Category) => {
+    const currentIndex = displayCategories.findIndex(c => c.id === node.id);
+    if (currentIndex < displayCategories.length - 1) {
+      const nextNode = displayCategories[currentIndex + 1];
+      const currentSort = node.sortOrder || 0;
+      const nextSort = nextNode.sortOrder || 0;
+
+      await updateMutation.mutateAsync({ id: node.id, sortOrder: nextSort });
+      await updateMutation.mutateAsync({ id: nextNode.id, sortOrder: currentSort });
+    }
+    setLongPressedId(null);
   };
 
   const confirmDelete = async () => {
@@ -273,19 +322,19 @@ export default function CategoriesPage() {
                     if (node.type === 'FOLDER') handleNavigate(node.id);
                   }}
                   onMouseDown={(e) => {
-                    // Prevent default only if it's not a button click
                     if (!(e.target as HTMLElement).closest('button')) {
-                      handlePressStart(node.id);
+                      handlePressStart(node.id, e);
                     }
                   }}
+                  onMouseMove={handlePressMove}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
                   onTouchStart={(e) => {
-                    // Prevent default to stop text selection on mobile
                     if (!(e.target as HTMLElement).closest('button')) {
-                      handlePressStart(node.id);
+                      handlePressStart(node.id, e);
                     }
                   }}
+                  onTouchMove={handlePressMove}
                   onTouchEnd={handlePressEnd}
                   onContextMenu={(e) => {
                     // Disable context menu to prevent conflicts with long press
@@ -321,6 +370,8 @@ export default function CategoriesPage() {
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
                           <span>Retail: <span className="font-bold text-foreground">₹{node.customerPrice}</span></span>
                           {isUnlocked && <span className="text-green-600 font-medium">Wholesale: ₹{node.wholesalePrice}</span>}
+                          {node.sph && <span className="text-muted-foreground bg-secondary/50 px-1.5 rounded">SPH: {node.sph}</span>}
+                          {node.cyl && <span className="text-muted-foreground bg-secondary/50 px-1.5 rounded">CYL: {node.cyl}</span>}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Category</span>
@@ -333,14 +384,20 @@ export default function CategoriesPage() {
                     longPressedId === node.id ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
                   )}>
                     {isUnlocked && (
-                      <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {isUnlocked && (
-                      <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMoveUp(node); }}>
+                          <ArrowUp className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMoveDown(node); }}>
+                          <ArrowDown className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                   
@@ -413,6 +470,24 @@ export default function CategoriesPage() {
                         onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
                       />
                     </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>SPH</Label>
+                    <Input
+                      value={editingNode?.sph || ''}
+                      onChange={e => setEditingNode(prev => ({ ...prev, sph: e.target.value }))}
+                      placeholder="e.g. -1.00 to +2.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CYL</Label>
+                    <Input
+                      value={editingNode?.cyl || ''}
+                      onChange={e => setEditingNode(prev => ({ ...prev, cyl: e.target.value }))}
+                      placeholder="e.g. 0.00 to -2.00"
+                    />
                   </div>
                 </div>
               </>

@@ -26,7 +26,7 @@ type GroupedCustomers = {
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const { isUnlocked } = useWholesale();
-  const { data: customers = [], isLoading } = useCustomers({ search: isUnlocked ? search : "" });
+  const { data: customers = [], isLoading } = useCustomers({ search: isUnlocked ? search : "" }, { enabled: isUnlocked });
   const { data: presets = [] } = usePresets();
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
@@ -597,6 +597,22 @@ export default function CustomersPage() {
         return null;
     }
   };
+
+  if (!isUnlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
+        <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+          <Lock className="w-10 h-10 text-muted-foreground opacity-50" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold font-display">Locked Content</h2>
+          <p className="text-muted-foreground max-w-xs mx-auto">
+            Please unlock the application from the sidebar or status bar to view customer records and prescriptions.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">

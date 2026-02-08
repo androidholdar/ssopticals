@@ -133,7 +133,7 @@ export async function registerRoutes(
   });
 
   // Customers
-  app.get(api.customers.list.path, async (req, res) => {
+  app.get(api.customers.list.path, checkWholesaleAuth, async (req, res) => {
     const params = {
       search: req.query.search as string,
       from: req.query.from as string,
@@ -153,7 +153,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.customers.get.path, async (req, res) => {
+  app.get(api.customers.get.path, checkWholesaleAuth, async (req, res) => {
     const customer = await storage.getCustomer(Number(req.params.id));
     if (!customer) return res.status(404).json({ message: "Customer not found" });
     res.json(customer);

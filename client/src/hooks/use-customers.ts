@@ -9,17 +9,23 @@ type CustomerFilters = {
   to?: string;
 };
 
-export function useCustomers(filters?: CustomerFilters) {
+export function useCustomers(filters?: CustomerFilters, options?: { enabled?: boolean }) {
   const queryKey = [api.customers.list.path, filters];
+  const { wholesalePassword } = useWholesale();
   return useQuery({
     queryKey,
+    ...options,
     queryFn: async () => {
       const url = new URL(window.location.origin + api.customers.list.path);
       if (filters?.search) url.searchParams.set("search", filters.search);
       if (filters?.from) url.searchParams.set("from", filters.from);
       if (filters?.to) url.searchParams.set("to", filters.to);
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: {
+          "X-Wholesale-Password": wholesalePassword || "",
+        }
+      });
       if (!res.ok) throw new Error("Failed to fetch customers");
       return api.customers.list.responses[200].parse(await res.json());
     },
@@ -27,11 +33,16 @@ export function useCustomers(filters?: CustomerFilters) {
 }
 
 export function useCustomer(id: number) {
+  const { wholesalePassword } = useWholesale();
   return useQuery({
     queryKey: [api.customers.get.path, id],
     queryFn: async () => {
       const url = buildUrl(api.customers.get.path, { id });
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: {
+          "X-Wholesale-Password": wholesalePassword || "",
+        }
+      });
       if (!res.ok) throw new Error("Failed to fetch customer");
       return api.customers.get.responses[200].parse(await res.json());
     },

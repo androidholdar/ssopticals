@@ -312,7 +312,7 @@ export default function CategoriesPage() {
                 <div 
                   key={node.id}
                   className={cn(
-                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none",
+                    "group flex flex-wrap sm:flex-nowrap items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none gap-2",
                     node.type === 'FOLDER' && "cursor-pointer",
                     longPressedId === node.id ? "bg-primary/5 border-primary/20 scale-[0.98]" : "hover:border-border"
                   )}
@@ -344,7 +344,7 @@ export default function CategoriesPage() {
                     e.preventDefault();
                   }}
                 >
-                  <div className="flex items-center gap-3 overflow-hidden flex-1">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     {node.type === 'FOLDER' ? (
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <Folder className="w-5 h-5" />
@@ -355,20 +355,10 @@ export default function CategoriesPage() {
                       </div>
                     )}
                     
-                    <div className="flex flex-col min-w-0 flex-1 overflow-hidden pr-2">
-                      <div className="marquee-container">
-                        <span className={cn(
-                          "font-semibold text-base inline-block",
-                          node.name.length > 15 ? "animate-marquee" : "truncate w-full"
-                        )}>
-                          {node.name}
-                        </span>
-                        {node.name.length > 15 && (
-                          <span className="font-semibold text-base animate-marquee">
-                            {node.name}
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex flex-col min-w-0 flex-1 pr-2">
+                      <span className="font-semibold text-base break-words">
+                        {node.name}
+                      </span>
                       {node.type === 'ITEM' || node.customerPrice !== null ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
                           {node.customerPrice !== undefined && (

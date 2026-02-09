@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer, useBulkDeleteCustomers } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
 import { Button } from "@/components/ui/button";
@@ -945,13 +945,45 @@ function CustomerCard({
     : format(new Date(customer.date), 'dd/MM/yyyy');
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
-  const handleStart = () => {
+  // Cancel long-press if the window is scrolled
+  useEffect(() => {
+    const handleScroll = () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
+
+  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+    const coords = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
+    touchStartRef.current = coords;
+
     longPressTimer.current = setTimeout(onLongPress, 500);
+  };
+
+  const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const coords = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
+
+    const dx = Math.abs(coords.x - touchStartRef.current.x);
+    const dy = Math.abs(coords.y - touchStartRef.current.y);
+
+    if (dx > 10 || dy > 10) {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    }
   };
 
   const handleEnd = () => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    touchStartRef.current = null;
   };
 
   return (
@@ -962,9 +994,11 @@ function CustomerCard({
       )}
       onClick={onClick}
       onMouseDown={handleStart}
+      onMouseMove={handleMove}
       onMouseUp={handleEnd}
       onMouseLeave={handleEnd}
       onTouchStart={handleStart}
+      onTouchMove={handleMove}
       onTouchEnd={handleEnd}
     >
       <CardContent className="p-0">

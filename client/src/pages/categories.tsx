@@ -312,7 +312,7 @@ export default function CategoriesPage() {
                 <div 
                   key={node.id}
                   className={cn(
-                    "group flex flex-wrap sm:flex-nowrap items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none gap-2",
+                    "group flex items-center justify-between py-3 px-4 hover:bg-muted/50 rounded-xl transition-all border border-transparent select-none gap-2",
                     node.type === 'FOLDER' && "cursor-pointer",
                     longPressedId === node.id ? "bg-primary/5 border-primary/20 scale-[0.98]" : "hover:border-border"
                   )}
@@ -374,27 +374,22 @@ export default function CategoriesPage() {
                     </div>
                   </div>
 
-                  <div className={cn(
-                    "flex items-center gap-1 transition-all ml-4",
-                    longPressedId === node.id ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
-                  )}>
-                    {isUnlocked && (
-                      <>
-                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMoveUp(node); }}>
-                          <ArrowUp className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMoveDown(node); }}>
-                          <ArrowDown className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  {isUnlocked && longPressedId === node.id && (
+                    <div className="flex items-center gap-1 ml-4 animate-in fade-in slide-in-from-right-2">
+                      <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMoveUp(node); }}>
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleMoveDown(node); }}>
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleEdit(node); }}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm" onClick={(e) => { e.stopPropagation(); handleDelete(node.id); }}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   
                   {node.type === 'FOLDER' && longPressedId !== node.id && (
                     <ChevronRight className="w-5 h-5 text-muted-foreground/50 ml-1" />

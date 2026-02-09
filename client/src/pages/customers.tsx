@@ -851,10 +851,10 @@ export default function CustomersPage() {
                   
                   <div className="col-span-2 border-t pt-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-primary mb-4">New Power</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-muted/30 p-3 rounded-lg">
                         <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Right Eye (R)</Label>
-                        <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="grid grid-cols-4 gap-2 text-center">
                           <div><span className="text-[10px] text-muted-foreground uppercase block">SPH</span><span className="font-medium">{selectedCustomer.newPowerRightSph || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">CYL</span><span className="font-medium">{selectedCustomer.newPowerRightCyl || '-'}</span></div>
                           <div><span className="text-[10px] text-muted-foreground uppercase block">AXIS</span><span className="font-medium">{selectedCustomer.newPowerRightAxis || '-'}</span></div>
@@ -875,7 +875,7 @@ export default function CustomersPage() {
 
                   <div className="col-span-2 border-t pt-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Old Power</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-muted/30 p-3 rounded-lg">
                         <Label className="text-[10px] font-bold text-muted-foreground uppercase block mb-2">Right Eye (R)</Label>
                         <div className="grid grid-cols-4 gap-2 text-center">

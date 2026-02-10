@@ -88,6 +88,16 @@ export default function CustomersPage() {
     return regex.test(dateStr);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      const form = (e.currentTarget as HTMLElement).closest('form');
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -652,7 +662,7 @@ export default function CustomersPage() {
               <ArrowUpDown className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-48 shadow-xl border-muted-foreground/20">
             <DropdownMenuItem onClick={() => setSortBy("date")}>
               Sort by Date {sortBy === "date" && "✓"}
             </DropdownMenuItem>
@@ -687,7 +697,10 @@ export default function CustomersPage() {
 
       {/* New Customer Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          onKeyDown={handleKeyDown}
+        >
           <DialogHeader>
             <DialogTitle>New Customer Record</DialogTitle>
           </DialogHeader>
@@ -730,7 +743,10 @@ export default function CustomersPage() {
 
       {/* Customer Details Dialog */}
       <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && (setSelectedCustomer(null), setIsEditMode(false))}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          onKeyDown={isEditMode ? handleKeyDown : undefined}
+        >
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle>{isEditMode ? "Edit Customer" : "Customer Details"}</DialogTitle>
@@ -986,7 +1002,7 @@ function CustomerCard({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-4">
               <h4 className="font-bold text-lg break-words leading-tight flex-1">{customer.name}</h4>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0 pt-1">{displayDate}</span>
             </div>

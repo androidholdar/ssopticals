@@ -8,10 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Lock, ArrowUpDown } from "lucide-react";
-import { format, isToday, isYesterday, parse } from "date-fns";
-import QuickPinchZoom from "react-quick-pinch-zoom";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Plus, Search, Calendar as CalendarIcon, User, Users, MapPin, Phone, Eye, Trash2, Edit2, X, Lock, ArrowUpDown } from "lucide-react";
+import { format, parse } from "date-fns";
 import { useWholesale } from "@/hooks/use-wholesale";
 import {
   DropdownMenu,
@@ -66,7 +64,6 @@ export default function CustomersPage() {
     notes: ""
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Determine active preset fields
   const activePreset = presets.find(p => p.isActive) || presets[0];

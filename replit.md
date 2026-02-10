@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 ### Key Data Models
 - **Settings**: Stores hashed wholesale password
 - **Categories**: Self-referential tree structure with `parentId` for unlimited nesting, supports FOLDER and ITEM types with pricing
-- **Customers**: Customer records with lens power tracking, prescription photos, and configurable fields
+- **Customers**: Customer records with lens power tracking and configurable fields
 - **FormPresets/FormPresetFields**: Customizable form field configurations for customer intake
 
 ### Security
@@ -63,8 +63,7 @@ shared/           # Shared code between client and server
 - `connect-pg-simple` for session storage
 
 ### File Storage
-- Local file uploads stored in `./uploads` directory
-- Multer middleware for handling multipart form data
+- Local file uploads used temporarily for backup restoration via Multer middleware.
 
 ### Key NPM Packages
 - `@tanstack/react-query`: Data fetching and caching

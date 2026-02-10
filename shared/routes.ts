@@ -32,6 +32,16 @@ export const errorSchemas = {
 
 // API Definition
 export const api = {
+  auth: {
+    user: {
+      method: 'GET' as const,
+      path: '/api/auth/user',
+      responses: {
+        200: z.object({ email: z.string().nullable() }),
+        401: z.object({ message: z.string() }),
+      },
+    },
+  },
   settings: {
     get: {
       method: 'GET' as const,

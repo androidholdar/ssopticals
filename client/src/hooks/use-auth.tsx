@@ -16,7 +16,7 @@ export function useAuth() {
   });
 
   const ALLOWED_EMAILS = ["iamsanjaysaini@gmail.com", "sumitsainibrd@gmail.com"];
-  const isWhitelisted = data?.email ? ALLOWED_EMAILS.includes(data.email.toLowerCase()) : false;
+  const isWhitelisted = data?.email ? ALLOWED_EMAILS.includes(data.email) : false;
 
   return {
     user: data,

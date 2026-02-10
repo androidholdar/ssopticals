@@ -160,15 +160,6 @@ export const api = {
         403: errorSchemas.unauthorized,
       },
     },
-    uploadPhoto: {
-      method: 'POST' as const,
-      path: '/api/customers/upload',
-      // FormData input not strictly typed here, handled in route
-      responses: {
-        200: z.object({ url: z.string() }),
-        400: errorSchemas.validation,
-      },
-    },
   },
   presets: {
     list: {

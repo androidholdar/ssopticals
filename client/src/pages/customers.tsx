@@ -735,7 +735,7 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <DialogTitle>{isEditMode ? "Edit Customer" : "Customer Details"}</DialogTitle>
               {!isEditMode && (
-                <div className="flex gap-2">
+                <div className="flex gap-4 mr-8">
                   {isUnlocked && (
                     <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}>
                       <Edit2 className="w-4 h-4" />
@@ -877,7 +877,7 @@ export default function CustomersPage() {
                     </div>
                   )}
                 </div>
-                <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
+                <DialogFooter className="flex flex-col sm:flex-row gap-4 mt-6">
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -986,11 +986,11 @@ function CustomerCard({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="font-bold text-lg truncate leading-tight">{customer.name}</h4>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0">{displayDate}</span>
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="font-bold text-lg break-words leading-tight flex-1">{customer.name}</h4>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter shrink-0 pt-1">{displayDate}</span>
             </div>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Phone className="w-3 h-3" />
                 <span>{isUnlocked ? (customer.mobile || 'No mobile') : '••••••••••'}</span>

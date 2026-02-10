@@ -64,23 +64,98 @@ export async function registerRoutes(
     const { password } = req.body;
     const s = await storage.getSettings();
     if (!s) return res.status(400).json({ message: "Setup required" });
-    
+
     const valid = verifyPassword(password, s.wholesalePasswordHash);
     res.json({ valid });
   });
 
   app.post(api.settings.changePassword.path, async (req, res) => {
-    const { oldPassword, newPassword } = req.body;
+    const { masterPassword, newPassword } = req.body;
     const s = await storage.getSettings();
     if (!s) return res.status(400).json({ message: "Setup required" });
 
-    if (!verifyPassword(oldPassword, s.wholesalePasswordHash)) {
-      return res.status(401).json({ message: "Invalid old password" });
+    // If a master password exists, we MUST verify against it.
+    if (s.masterPasswordHash) {
+      if (!masterPassword || !verifyPassword(masterPassword, s.masterPasswordHash)) {
+        return res.status(401).json({ message: "Invalid master password" });
+      }
+    } else {
+      // Fallback: if no master password is set, we use the current wholesale password
+      if (!verifyPassword(masterPassword, s.wholesalePasswordHash)) {
+        return res.status(401).json({ message: "Invalid current password" });
+      }
     }
 
     await storage.updateSettings(hashPassword(newPassword));
     res.json({ success: true });
   });
+
+  app.post("/api/settings/master-password", async (req, res) => {
+    const { password } = req.body;
+    const s = await storage.getSettings();
+
+    if (s?.masterPasswordHash) {
+      return res.status(400).json({
+        message: "Master password already set. It cannot be changed."
+      });
+    }
+
+    const hash = hashPassword(password);
+
+    if (s) {
+      await db
+        .update(settings)
+        .set({ masterPasswordHash: hash })
+        .where(eq(settings.id, s.id));
+    } else {
+      await storage.createSettings(""); // Create with empty wholesale password
+      const newS = await storage.getSettings();
+      if (newS) {
+        await db
+          .update(settings)
+          .set({ masterPasswordHash: hash })
+          .where(eq(settings.id, newS.id));
+      }
+    }
+
+    res.json({ success: true });
+  });
+
+  app.post("/api/settings/reset", async (req, res) => {
+    const { masterPassword } = req.body;
+    const s = await storage.getSettings();
+
+    if (!s) return res.status(400).json({ message: "Setup required" });
+
+    if (s.masterPasswordHash) {
+      if (!masterPassword || !verifyPassword(masterPassword, s.masterPasswordHash)) {
+        return res.status(401).json({ message: "Invalid master password" });
+      }
+    } else {
+       // If no master password, check wholesale password
+       if (!masterPassword || !verifyPassword(masterPassword, s.wholesalePasswordHash)) {
+         return res.status(401).json({ message: "Invalid current password" });
+       }
+    }
+
+    await db.update(settings).set({ wholesalePasswordHash: "" }).where(eq(settings.id, s.id));
+    res.json({ success: true });
+  });
+
+  // Categories
+  async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const password = req.headers["x-wholesale-password"] as string;
+    const s = await storage.getSettings();
+
+    // If no password is set, allow (or maybe restrict? The user said "in unlocked mode to delete")
+    // If a password IS set, we must verify it.
+    if (s && s.wholesalePasswordHash) {
+      if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
+        return res.status(403).json({ message: "Wholesale access required" });
+      }
+    }
+    next();
+  }
 
   // Categories
   async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {

@@ -62,7 +62,7 @@ export const api = {
     changePassword: {
       method: 'POST' as const,
       path: '/api/settings/change-password',
-      input: z.object({ oldPassword: z.string(), newPassword: z.string().min(1) }),
+      input: z.object({ masterPassword: z.string(), newPassword: z.string().min(1) }),
       responses: {
         200: z.object({ success: z.boolean() }),
         401: errorSchemas.unauthorized,

@@ -126,7 +126,7 @@ export type BulkUpdatePresetFieldsRequest = {
 
 export type SetPasswordRequest = { password: string };
 export type CheckPasswordRequest = { password: string };
-export type ChangePasswordRequest = { oldPassword: string; newPassword: string };
+export type ChangePasswordRequest = { masterPassword: string; newPassword: string };
 
 // Response Types (Extended)
 export type CategoryWithChildren = Category & { children?: CategoryWithChildren[] };

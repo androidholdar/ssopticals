@@ -43,10 +43,12 @@ export default function LoginPage() {
 
           <Button
             className="w-full h-12 text-lg rounded-xl shadow-lg shadow-primary/20"
-            onClick={() => window.location.href = '/__replauthlogin'}
+            asChild
           >
-            <LogIn className="w-5 h-5 mr-2" />
-            {isAuthenticated ? "Switch Account" : "Login with Google"}
+            <a href="/__replauthlogin">
+              <LogIn className="w-5 h-5 mr-2" />
+              {isAuthenticated ? "Switch Account" : "Login with Google"}
+            </a>
           </Button>
 
           <p className="text-[10px] text-center text-muted-foreground mt-4">

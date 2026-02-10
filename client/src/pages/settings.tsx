@@ -1,4 +1,4 @@
-import { useSettings, useSetupPassword, useChangePassword, useVerifyPassword } from "@/hooks/use-settings";
+import { useSettings, useSetupPassword, useChangePassword, useVerifyPassword, useSetupMasterPassword } from "@/hooks/use-settings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,19 @@ export default function SettingsPage() {
   const { data: settings } = useSettings();
   const setupPassword = useSetupPassword();
   const changePassword = useChangePassword();
+  const setupMasterPassword = useSetupMasterPassword();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRestoring, setIsRestoring] = useState(false);
 
   // Password State
   const [newPassword, setNewPassword] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
+  const [masterPasswordInput, setMasterPasswordInput] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Master Password Setup State
+  const [newMasterPassword, setNewMasterPassword] = useState("");
+  const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,28 +39,40 @@ export default function SettingsPage() {
         await setupPassword.mutateAsync({ password: newPassword });
         toast({ title: "Password Set", description: "Wholesale password created." });
       } else {
-        await changePassword.mutateAsync({ oldPassword, newPassword });
+        await changePassword.mutateAsync({ masterPassword: masterPasswordInput, newPassword });
         toast({ title: "Password Changed", description: "Wholesale password updated." });
       }
       setNewPassword("");
-      setOldPassword("");
+      setMasterPasswordInput("");
       setConfirmPassword("");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
-  const handleResetPassword = async () => {
-    performReset();
-  };
-
-  const performReset = async () => {
-    if (!confirm("Are you sure you want to reset the wholesale password? This will remove password protection from wholesale prices until a new one is set.")) {
+  const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newMasterPassword !== confirmMasterPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
       return;
     }
 
     try {
-      await apiRequest("POST", "/api/settings/reset", {});
+      await setupMasterPassword.mutateAsync({ password: newMasterPassword });
+      toast({ title: "Master Password Set", description: "Security significantly improved." });
+      setNewMasterPassword("");
+      setConfirmMasterPassword("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const masterPass = prompt("Please enter the " + (settings?.hasMasterPassword ? "Master Password" : "Current Password") + " to reset:");
+    if (masterPass === null) return;
+
+    try {
+      await apiRequest("POST", "/api/settings/reset", { masterPassword: masterPass });
       toast({ title: "Password Reset", description: "Wholesale password has been cleared." });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
     } catch (error: any) {
@@ -156,7 +173,52 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="security" className="mt-6">
+        <TabsContent value="security" className="mt-6 space-y-6">
+          {!settings?.hasMasterPassword && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/20 rounded-lg text-primary">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle>Setup Master Password</CardTitle>
+                    <CardDescription>The Master Password is required to change or reset the wholesale password.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleMasterPasswordSubmit} className="space-y-4 max-w-md">
+                  <div className="space-y-2">
+                    <Label>Master Password</Label>
+                    <Input
+                      type="password"
+                      value={newMasterPassword}
+                      onChange={e => setNewMasterPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Confirm Master Password</Label>
+                    <Input
+                      type="password"
+                      value={confirmMasterPassword}
+                      onChange={e => setConfirmMasterPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={setupMasterPassword.isPending}>
+                    {setupMasterPassword.isPending ? "Setting..." : "Set Master Password"}
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Note: The Master Password cannot be changed once set. Please keep it safe.
+                  </p>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -173,11 +235,11 @@ export default function SettingsPage() {
               <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
                 {settings?.hasPassword && (
                   <div className="space-y-2">
-                    <Label>Current Password</Label>
+                    <Label>{settings?.hasMasterPassword ? "Master Password" : "Current Password"}</Label>
                     <Input 
                       type="password" 
-                      value={oldPassword} 
-                      onChange={e => setOldPassword(e.target.value)} 
+                      value={masterPasswordInput}
+                      onChange={e => setMasterPasswordInput(e.target.value)}
                       required 
                     />
                   </div>

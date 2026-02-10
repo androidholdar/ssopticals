@@ -32,16 +32,6 @@ export const errorSchemas = {
 
 // API Definition
 export const api = {
-  auth: {
-    user: {
-      method: 'GET' as const,
-      path: '/api/auth/user',
-      responses: {
-        200: z.object({ email: z.string().nullable() }),
-        401: z.object({ message: z.string() }),
-      },
-    },
-  },
   settings: {
     get: {
       method: 'GET' as const,
@@ -72,7 +62,7 @@ export const api = {
     changePassword: {
       method: 'POST' as const,
       path: '/api/settings/change-password',
-      input: z.object({ oldPassword: z.string(), newPassword: z.string().min(1) }),
+      input: z.object({ masterPassword: z.string(), newPassword: z.string().min(1) }),
       responses: {
         200: z.object({ success: z.boolean() }),
         401: errorSchemas.unauthorized,

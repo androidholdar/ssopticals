@@ -51,10 +51,32 @@ export function useChangePassword() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        if (res.status === 401) throw new Error("Incorrect old password");
+        if (res.status === 401) {
+          const err = await res.json();
+          throw new Error(err.message || "Incorrect master password");
+        }
         throw new Error("Failed to change password");
       }
       return api.settings.changePassword.responses[200].parse(await res.json());
     },
+  });
+}
+
+export function useSetupMasterPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { password: string }) => {
+      const res = await fetch("/api/settings/master-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to setup master password");
+      }
+      return await res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.settings.get.path] }),
   });
 }

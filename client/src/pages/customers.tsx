@@ -8,23 +8,24 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Lock } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, Camera, Upload, User, Users, MapPin, Phone, Eye, Trash2, ExternalLink, Edit2, X, ZoomIn, ZoomOut, Maximize2, Share2, Lock, ArrowUpDown } from "lucide-react";
 import { format, isToday, isYesterday, parse } from "date-fns";
 import QuickPinchZoom from "react-quick-pinch-zoom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useWholesale } from "@/hooks/use-wholesale";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-type GroupedCustomers = {
-  today: any[];
-  yesterday: any[];
-  older: any[];
-};
-
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "date">("date");
   const { isUnlocked } = useWholesale();
   const { data: customers = [], isLoading } = useCustomers({ search: isUnlocked ? search : "" }, { enabled: isUnlocked });
   const { data: presets = [] } = usePresets();
@@ -71,20 +72,16 @@ export default function CustomersPage() {
   const activePreset = presets.find(p => p.isActive) || presets[0];
   const fields = activePreset?.fields?.filter(f => f.isEnabled).sort((a, b) => a.orderIndex - b.orderIndex) || [];
 
-  // Group customers
-  const grouped = customers.reduce((acc: GroupedCustomers, customer) => {
-    let date: Date;
-    if (customer.date.includes('/')) {
-      date = parse(customer.date, 'dd/MM/yyyy', new Date());
+  // Sort customers
+  const sortedCustomers = [...customers].sort((a, b) => {
+    if (sortBy === "name") {
+      return a.name.localeCompare(b.name);
     } else {
-      date = new Date(customer.date);
+      const dateA = a.date.includes('/') ? parse(a.date, 'dd/MM/yyyy', new Date()) : new Date(a.date);
+      const dateB = b.date.includes('/') ? parse(b.date, 'dd/MM/yyyy', new Date()) : new Date(b.date);
+      return dateB.getTime() - dateA.getTime(); // Newest first
     }
-
-    if (isToday(date)) acc.today.push(customer);
-    else if (isYesterday(date)) acc.yesterday.push(customer);
-    else acc.older.push(customer);
-    return acc;
-  }, { today: [], yesterday: [], older: [] });
+  });
 
   const validateDate = (dateStr: string) => {
     const regex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -639,70 +636,46 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-        <Input 
-          className="pl-9 h-12 rounded-xl border-muted-foreground/20" 
-          placeholder="Search by name or mobile..." 
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="flex gap-2 items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+          <Input
+            className="pl-9 h-12 rounded-xl border-muted-foreground/20"
+            placeholder="Search by name or mobile..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-muted-foreground/20">
+              <ArrowUpDown className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setSortBy("date")}>
+              Sort by Date {sortBy === "date" && "✓"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("name")}>
+              Sort by Name {sortBy === "name" && "✓"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      <div className="space-y-8">
-        {grouped.today.length > 0 && (
-          <section>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Today</h3>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.today.map(c => (
-                <CustomerCard
-                  key={c.id}
-                  customer={c}
-                  onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
-                  onLongPress={() => handleLongPress(c.id)}
-                  isSelected={selectedIds.has(c.id)}
-                  isSelectionMode={isSelectionMode}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {grouped.yesterday.length > 0 && (
-          <section>
-             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Yesterday</h3>
-             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.yesterday.map(c => (
-                <CustomerCard
-                  key={c.id}
-                  customer={c}
-                  onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
-                  onLongPress={() => handleLongPress(c.id)}
-                  isSelected={selectedIds.has(c.id)}
-                  isSelectionMode={isSelectionMode}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {grouped.older.length > 0 && (
-          <section>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Older</h3>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {grouped.older.map(c => (
-                <CustomerCard
-                  key={c.id}
-                  customer={c}
-                  onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
-                  onLongPress={() => handleLongPress(c.id)}
-                  isSelected={selectedIds.has(c.id)}
-                  isSelectionMode={isSelectionMode}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {sortedCustomers.map(c => (
+            <CustomerCard
+              key={c.id}
+              customer={c}
+              onClick={() => isSelectionMode ? toggleSelection(c.id) : setSelectedCustomer(c)}
+              onLongPress={() => handleLongPress(c.id)}
+              isSelected={selectedIds.has(c.id)}
+              isSelectionMode={isSelectionMode}
+            />
+          ))}
+        </div>
 
         {customers.length === 0 && (
           <div className="text-center py-20 text-muted-foreground">

@@ -30,10 +30,38 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
+const ALLOWED_EMAILS = ["iamsanjaysaini@gmail.com", "sumitsainibrd@gmail.com"];
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // Authentication Middleware
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api") && req.path !== api.auth.user.path) {
+      const email = req.headers["x-replit-user-email"] as string;
+
+      // For development, we can use an environment variable
+      const devEmail = process.env.DEV_EMAIL;
+      const effectiveEmail = email || devEmail;
+
+      if (!effectiveEmail) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!ALLOWED_EMAILS.includes(effectiveEmail)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    }
+    next();
+  });
+
+  // Auth Status
+  app.get(api.auth.user.path, (req, res) => {
+    const email = (req.headers["x-replit-user-email"] as string) || process.env.DEV_EMAIL || null;
+    res.json({ email });
+  });
 
   // Settings
   app.get(api.settings.get.path, async (req, res) => {

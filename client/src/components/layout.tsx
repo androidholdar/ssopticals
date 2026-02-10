@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Users, Box, Settings as SettingsIcon, LogOut, Lock, Unlock } from "lucide-react";
 import { useWholesale } from "@/hooks/use-wholesale";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useVerifyPassword } from "@/hooks/use-settings";
@@ -18,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { isUnlocked, lock, unlock } = useWholesale();
+  const { user } = useAuth();
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [password, setPassword] = useState("");
   const verify = useVerifyPassword();
@@ -123,7 +125,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="p-4 border-t bg-muted/50">
+        <div className="p-4 border-t bg-muted/50 space-y-3">
+          <div className="px-4 py-2 bg-background rounded-lg border border-border">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">User</p>
+            <p className="text-xs font-medium truncate" title={user?.email || ''}>{user?.email}</p>
+          </div>
           <button 
             onClick={() => isUnlocked ? lock() : setShowUnlockDialog(true)}
             className={cn(
@@ -180,7 +186,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex flex-col z-50">
         <div className="flex justify-between items-center px-4 py-2 border-b bg-muted/30">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</span>
+          <span className="text-[10px] font-medium text-muted-foreground uppercase truncate max-w-[150px]">{user?.email}</span>
           <button 
             onClick={() => isUnlocked ? lock() : setShowUnlockDialog(true)}
             className={cn(

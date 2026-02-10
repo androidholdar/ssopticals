@@ -1,7 +1,6 @@
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { cn } from "@/lib/utils";
 import { LogIn, ShieldAlert } from "lucide-react";
 
 export default function LoginPage() {
@@ -42,17 +41,13 @@ export default function LoginPage() {
             </div>
           )}
 
-          <a
-            href="/__replauthlogin"
-            target="_top"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "w-full h-12 text-lg rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center cursor-pointer"
-            )}
+          <Button
+            className="w-full h-12 text-lg rounded-xl shadow-lg shadow-primary/20"
+            onClick={() => window.location.href = '/__replauthlogin'}
           >
             <LogIn className="w-5 h-5 mr-2" />
             {isAuthenticated ? "Switch Account" : "Login with Google"}
-          </a>
+          </Button>
 
           <p className="text-[10px] text-center text-muted-foreground mt-4">
             Authorized access only. All activities are logged.

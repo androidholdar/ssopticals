@@ -32,20 +32,6 @@ const upload = multer({
 
 const ALLOWED_EMAILS = ["iamsanjaysaini@gmail.com", "sumitsainibrd@gmail.com"];
 
-async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const password = req.headers["x-wholesale-password"] as string;
-  const s = await storage.getSettings();
-
-  // If no password is set, allow (or maybe restrict? The user said "in unlocked mode to delete")
-  // If a password IS set, we must verify it.
-  if (s && s.wholesalePasswordHash) {
-    if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
-      return res.status(403).json({ message: "Wholesale access required" });
-    }
-  }
-  next();
-}
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -64,7 +50,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      if (!ALLOWED_EMAILS.includes(effectiveEmail.toLowerCase())) {
+      if (!ALLOWED_EMAILS.includes(effectiveEmail)) {
         return res.status(403).json({ message: "Access denied" });
       }
     }
@@ -123,6 +109,21 @@ export async function registerRoutes(
     await storage.updateSettings(hashPassword(newPassword));
     res.json({ success: true });
   });
+
+  // Categories
+  async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const password = req.headers["x-wholesale-password"] as string;
+    const s = await storage.getSettings();
+
+    // If no password is set, allow (or maybe restrict? The user said "in unlocked mode to delete")
+    // If a password IS set, we must verify it.
+    if (s && s.wholesalePasswordHash) {
+      if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
+        return res.status(403).json({ message: "Wholesale access required" });
+      }
+    }
+    next();
+  }
 
   // Categories
   app.get(api.categories.list.path, async (req, res) => {

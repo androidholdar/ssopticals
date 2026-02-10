@@ -978,9 +978,10 @@ function CustomerCard({
   return (
     <Card 
       className={cn(
-        "group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50",
+        "group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50 select-none",
         isSelected && "border-primary bg-primary/5 ring-1 ring-primary"
       )}
+      onContextMenu={(e) => e.preventDefault()}
       onClick={onClick}
       onMouseDown={handleStart}
       onMouseMove={handleMove}

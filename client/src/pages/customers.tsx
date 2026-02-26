@@ -149,33 +149,34 @@ export default function CustomersPage() {
 
       const data = await res.json();
 
-      // Fill form with extracted data
+      // Sirf form fill karo - auto save NAHI hoga
+      // Eye power hamesha newPower mein, old hamesha blank
       setNewCustomer((prev: any) => ({
         ...prev,
         name: data.name || prev.name,
         mobile: data.mobile || prev.mobile,
         address: data.address || prev.address,
         age: data.age || prev.age,
-        newPowerRightSph: data.newPowerRightSph || prev.newPowerRightSph,
-        newPowerRightCyl: data.newPowerRightCyl || prev.newPowerRightCyl,
-        newPowerRightAxis: data.newPowerRightAxis || prev.newPowerRightAxis,
-        newPowerRightAdd: data.newPowerRightAdd || prev.newPowerRightAdd,
-        newPowerLeftSph: data.newPowerLeftSph || prev.newPowerLeftSph,
-        newPowerLeftCyl: data.newPowerLeftCyl || prev.newPowerLeftCyl,
-        newPowerLeftAxis: data.newPowerLeftAxis || prev.newPowerLeftAxis,
-        newPowerLeftAdd: data.newPowerLeftAdd || prev.newPowerLeftAdd,
-        oldPowerRightSph: data.oldPowerRightSph || prev.oldPowerRightSph,
-        oldPowerRightCyl: data.oldPowerRightCyl || prev.oldPowerRightCyl,
-        oldPowerRightAxis: data.oldPowerRightAxis || prev.oldPowerRightAxis,
-        oldPowerRightAdd: data.oldPowerRightAdd || prev.oldPowerRightAdd,
-        oldPowerLeftSph: data.oldPowerLeftSph || prev.oldPowerLeftSph,
-        oldPowerLeftCyl: data.oldPowerLeftCyl || prev.oldPowerLeftCyl,
-        oldPowerLeftAxis: data.oldPowerLeftAxis || prev.oldPowerLeftAxis,
-        oldPowerLeftAdd: data.oldPowerLeftAdd || prev.oldPowerLeftAdd,
-        notes: data.notes || prev.notes,
+        newPowerRightSph: data.newPowerRightSph || "",
+        newPowerRightCyl: data.newPowerRightCyl || "",
+        newPowerRightAxis: data.newPowerRightAxis || "",
+        newPowerRightAdd: data.newPowerRightAdd || "",
+        newPowerLeftSph: data.newPowerLeftSph || "",
+        newPowerLeftCyl: data.newPowerLeftCyl || "",
+        newPowerLeftAxis: data.newPowerLeftAxis || "",
+        newPowerLeftAdd: data.newPowerLeftAdd || "",
+        oldPowerRightSph: "",
+        oldPowerRightCyl: "",
+        oldPowerRightAxis: "",
+        oldPowerRightAdd: "",
+        oldPowerLeftSph: "",
+        oldPowerLeftCyl: "",
+        oldPowerLeftAxis: "",
+        oldPowerLeftAdd: "",
+        notes: data.notes || "",
       }));
 
-      toast({ title: "✅ Scan Successful!", description: "Form fields filled from image. Please verify." });
+      toast({ title: "✅ Scan Successful!", description: "Form fill ho gaya. Verify karke Save karo." });
     } catch (err) {
       toast({ title: "Scan Failed", description: "Could not read the image. Please fill manually.", variant: "destructive" });
     } finally {
@@ -581,6 +582,10 @@ export default function CustomersPage() {
       </div>
 
       {/* Hidden camera input */}
+      {/* 
+        capture="environment" = seedha back camera khulta hai mobile par
+        Back press karne par gallery option milega browser se
+      */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -929,3 +934,4 @@ function CustomerCard({
     </Card>
   );
 }
+

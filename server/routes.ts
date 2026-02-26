@@ -314,39 +314,45 @@ export async function registerRoutes(
         return res.status(500).json({ message: "GEMINI_API_KEY not configured" });
       }
 
-      const prompt = `You are an optical prescription reader. Extract customer information from this handwritten prescription paper.
+      const prompt = `You are an optical prescription reader for an optical shop in India. Extract information from this handwritten prescription/chit/paper.
 
-Return ONLY a valid JSON object with these exact keys (use empty string "" if not found):
+IMPORTANT RULES:
+1. ANY eye power found on the paper ALWAYS goes into newPower fields (never oldPower)
+2. oldPower fields should ALWAYS be empty string ""
+3. If a field is not written on the paper, leave it as empty string ""
+4. Do NOT guess or assume any values
+
+Return ONLY a valid JSON object with exactly these keys:
 {
-  "name": "customer full name",
-  "age": "age as number string",
-  "mobile": "10 digit mobile number only digits",
-  "address": "full address",
-  "newPowerRightSph": "right eye new SPH value",
-  "newPowerRightCyl": "right eye new CYL value",
-  "newPowerRightAxis": "right eye new AXIS value",
-  "newPowerRightAdd": "right eye new ADD value",
-  "newPowerLeftSph": "left eye new SPH value",
-  "newPowerLeftCyl": "left eye new CYL value",
-  "newPowerLeftAxis": "left eye new AXIS value",
-  "newPowerLeftAdd": "left eye new ADD value",
-  "oldPowerRightSph": "right eye old SPH value",
-  "oldPowerRightCyl": "right eye old CYL value",
-  "oldPowerRightAxis": "right eye old AXIS value",
-  "oldPowerRightAdd": "right eye old ADD value",
-  "oldPowerLeftSph": "left eye old SPH value",
-  "oldPowerLeftCyl": "left eye old CYL value",
-  "oldPowerLeftAxis": "left eye old AXIS value",
-  "oldPowerLeftAdd": "left eye old ADD value",
-  "notes": "any other notes"
+  "name": "customer full name as written",
+  "age": "age digits only",
+  "mobile": "mobile number digits only no spaces no dashes",
+  "address": "full address as written",
+  "newPowerRightSph": "right eye SPH (e.g. -2.50 or +1.25)",
+  "newPowerRightCyl": "right eye CYL",
+  "newPowerRightAxis": "right eye AXIS",
+  "newPowerRightAdd": "right eye ADD",
+  "newPowerLeftSph": "left eye SPH",
+  "newPowerLeftCyl": "left eye CYL",
+  "newPowerLeftAxis": "left eye AXIS",
+  "newPowerLeftAdd": "left eye ADD",
+  "oldPowerRightSph": "",
+  "oldPowerRightCyl": "",
+  "oldPowerRightAxis": "",
+  "oldPowerRightAdd": "",
+  "oldPowerLeftSph": "",
+  "oldPowerLeftCyl": "",
+  "oldPowerLeftAxis": "",
+  "oldPowerLeftAdd": "",
+  "notes": "any other information on the paper"
 }
 
-Important:
-- R/RE/Right = Right eye, L/LE/Left = Left eye
-- SPH values can be negative like -2.50 or positive like +1.25
-- Keep signs (+ or -) in the values
-- Mobile: digits only, no spaces or dashes
-- Return ONLY the JSON, no extra text`;
+Reading tips:
+- R / RE / Right / Daya = Right eye
+- L / LE / Left / Baya = Left eye  
+- Keep + or - signs in SPH and CYL values
+- Mobile: extract 10 digits only
+- Return ONLY the JSON object, no extra text`;
 
       const geminiRes = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -432,3 +438,4 @@ export async function seedDatabase() {
     await storage.activatePreset(defaultPreset.id);
   }
 }
+

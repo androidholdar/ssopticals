@@ -59,7 +59,6 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-
   app.post(api.settings.verify.path, async (req, res) => {
     const { password } = req.body;
     const s = await storage.getSettings();
@@ -74,13 +73,11 @@ export async function registerRoutes(
     const s = await storage.getSettings();
     if (!s) return res.status(400).json({ message: "Setup required" });
 
-    // If a master password exists, we MUST verify against it.
     if (s.masterPasswordHash) {
       if (!masterPassword || !verifyPassword(masterPassword, s.masterPasswordHash)) {
         return res.status(401).json({ message: "Invalid master password" });
       }
     } else {
-      // Fallback: if no master password is set, we use the current wholesale password
       if (!verifyPassword(masterPassword, s.wholesalePasswordHash)) {
         return res.status(401).json({ message: "Invalid current password" });
       }
@@ -108,7 +105,7 @@ export async function registerRoutes(
         .set({ masterPasswordHash: hash })
         .where(eq(settings.id, s.id));
     } else {
-      await storage.createSettings(""); // Create with empty wholesale password
+      await storage.createSettings("");
       const newS = await storage.getSettings();
       if (newS) {
         await db
@@ -132,38 +129,19 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid master password" });
       }
     } else {
-       // If no master password, check wholesale password
-       if (!masterPassword || !verifyPassword(masterPassword, s.wholesalePasswordHash)) {
-         return res.status(401).json({ message: "Invalid current password" });
-       }
+      if (!masterPassword || !verifyPassword(masterPassword, s.wholesalePasswordHash)) {
+        return res.status(401).json({ message: "Invalid current password" });
+      }
     }
 
     await db.update(settings).set({ wholesalePasswordHash: "" }).where(eq(settings.id, s.id));
     res.json({ success: true });
   });
 
-  // Categories
   async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
     const password = req.headers["x-wholesale-password"] as string;
     const s = await storage.getSettings();
 
-    // If no password is set, allow (or maybe restrict? The user said "in unlocked mode to delete")
-    // If a password IS set, we must verify it.
-    if (s && s.wholesalePasswordHash) {
-      if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
-        return res.status(403).json({ message: "Wholesale access required" });
-      }
-    }
-    next();
-  }
-
-  // Categories
-  async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const password = req.headers["x-wholesale-password"] as string;
-    const s = await storage.getSettings();
-
-    // If no password is set, allow (or maybe restrict? The user said "in unlocked mode to delete")
-    // If a password IS set, we must verify it.
     if (s && s.wholesalePasswordHash) {
       if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
         return res.status(403).json({ message: "Wholesale access required" });
@@ -256,7 +234,6 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-
   // Presets
   app.get(api.presets.list.path, async (req, res) => {
     const presetsList = await storage.getPresets();
@@ -317,6 +294,100 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ message: "Restore failed: " + (err as Error).message });
+    }
+  });
+
+  // ============================================================
+  // AI Prescription Scan using Gemini Vision
+  // ============================================================
+  app.post("/api/scan-prescription", upload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+
+      const imageData = fs.readFileSync(req.file.path);
+      const base64Image = imageData.toString("base64");
+      const mimeType = req.file.mimetype || "image/jpeg";
+
+      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+      if (!GEMINI_API_KEY) {
+        fs.unlinkSync(req.file.path);
+        return res.status(500).json({ message: "GEMINI_API_KEY not configured" });
+      }
+
+      const prompt = `You are an optical prescription reader. Extract customer information from this handwritten prescription paper.
+
+Return ONLY a valid JSON object with these exact keys (use empty string "" if not found):
+{
+  "name": "customer full name",
+  "age": "age as number string",
+  "mobile": "10 digit mobile number only digits",
+  "address": "full address",
+  "newPowerRightSph": "right eye new SPH value",
+  "newPowerRightCyl": "right eye new CYL value",
+  "newPowerRightAxis": "right eye new AXIS value",
+  "newPowerRightAdd": "right eye new ADD value",
+  "newPowerLeftSph": "left eye new SPH value",
+  "newPowerLeftCyl": "left eye new CYL value",
+  "newPowerLeftAxis": "left eye new AXIS value",
+  "newPowerLeftAdd": "left eye new ADD value",
+  "oldPowerRightSph": "right eye old SPH value",
+  "oldPowerRightCyl": "right eye old CYL value",
+  "oldPowerRightAxis": "right eye old AXIS value",
+  "oldPowerRightAdd": "right eye old ADD value",
+  "oldPowerLeftSph": "left eye old SPH value",
+  "oldPowerLeftCyl": "left eye old CYL value",
+  "oldPowerLeftAxis": "left eye old AXIS value",
+  "oldPowerLeftAdd": "left eye old ADD value",
+  "notes": "any other notes"
+}
+
+Important:
+- R/RE/Right = Right eye, L/LE/Left = Left eye
+- SPH values can be negative like -2.50 or positive like +1.25
+- Keep signs (+ or -) in the values
+- Mobile: digits only, no spaces or dashes
+- Return ONLY the JSON, no extra text`;
+
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: base64Image } }
+              ]
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 1024 }
+          })
+        }
+      );
+
+      fs.unlinkSync(req.file.path);
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.error("Gemini API error:", errText);
+        return res.status(500).json({ message: "AI service error" });
+      }
+
+      const geminiData = await geminiRes.json();
+      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return res.status(422).json({ message: "Could not parse prescription" });
+
+      const extracted = JSON.parse(jsonMatch[0]);
+      res.json(extracted);
+
+    } catch (err) {
+      console.error("Scan error:", err);
+      if (req.file?.path) {
+        try { fs.unlinkSync(req.file.path); } catch {}
+      }
+      res.status(500).json({ message: "Failed to process image" });
     }
   });
 

@@ -44,6 +44,7 @@ export default function CustomersPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
@@ -125,9 +126,38 @@ export default function CustomersPage() {
     }
   };
 
-  // AI Camera Scan Handler
-  const handleCameraScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Input reset karo - back press ke baad bhi kaam kare
+  const resetInput = (ref: React.RefObject<HTMLInputElement>) => {
+    if (ref.current) {
+      ref.current.value = "";
+    }
+  };
+
+  // Camera seedha kholo
+  const openCamera = () => {
+    resetInput(cameraInputRef);
+    // Naya input element create karo har baar - back press fix
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment"; // seedha back camera
+    input.onchange = (e) => {
+      const changeEvent = e as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleCameraScan(changeEvent);
+    };
+    input.click();
+  };
+
+  // Gallery se upload
+  const openGallery = () => {
+    resetInput(galleryInputRef);
+    galleryInputRef.current?.click();
+  };
+
+  // AI Camera Scan Handler - sirf form fill karta hai, save nahi karta
+  const handleCameraScan = async (e: React.ChangeEvent<HTMLInputElement> | Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
 
     // Show preview
@@ -149,7 +179,7 @@ export default function CustomersPage() {
 
       const data = await res.json();
 
-      // Sirf form fill karo - auto save NAHI hoga
+      // Sirf form fill karo - auto save NAHI
       // Eye power hamesha newPower mein, old hamesha blank
       setNewCustomer((prev: any) => ({
         ...prev,
@@ -176,13 +206,11 @@ export default function CustomersPage() {
         notes: data.notes || "",
       }));
 
-      toast({ title: "✅ Scan Successful!", description: "Form fill ho gaya. Verify karke Save karo." });
+      toast({ title: "✅ Scan Ho Gaya!", description: "Form fill ho gaya. Verify karke Save karo." });
     } catch (err) {
-      toast({ title: "Scan Failed", description: "Could not read the image. Please fill manually.", variant: "destructive" });
+      toast({ title: "Scan Failed", description: "Image read nahi hui. Manually fill karo.", variant: "destructive" });
     } finally {
       setIsScanning(false);
-      // Reset file input
-      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   };
 
@@ -511,7 +539,7 @@ export default function CustomersPage() {
                   setScanPreview(null);
                   setNewCustomer({ ...emptyCustomer, date: format(new Date(), 'dd/MM/yyyy') });
                   setIsDialogOpen(true);
-                  setTimeout(() => cameraInputRef.current?.click(), 300);
+                  setTimeout(() => openCamera(), 300);
                 }}
                 disabled={isScanning}
               >
@@ -582,15 +610,20 @@ export default function CustomersPage() {
       </div>
 
       {/* Hidden camera input */}
-      {/* 
-        capture="environment" = seedha back camera khulta hai mobile par
-        Back press karne par gallery option milega browser se
-      */}
+      {/* Camera input - capture seedha camera kholta hai */}
       <input
         ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        className="hidden"
+        onChange={handleCameraScan}
+      />
+      {/* Gallery fallback input - bina capture ke */}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
         className="hidden"
         onChange={handleCameraScan}
       />
@@ -615,7 +648,7 @@ export default function CustomersPage() {
                   size="sm"
                   variant="secondary"
                   className="text-xs"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={openCamera}
                   disabled={isScanning}
                 >
                   {isScanning ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
@@ -635,24 +668,39 @@ export default function CustomersPage() {
             </div>
           )}
 
-          {/* Scan button inside form if no preview */}
+          {/* Scan buttons inside form if no preview */}
           {!scanPreview && (
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              disabled={isScanning}
-              className="w-full border-2 border-dashed border-primary/30 rounded-xl p-4 flex flex-col items-center gap-2 text-primary/70 hover:bg-primary/5 hover:border-primary/50 transition-all"
-            >
+            <div className="space-y-2">
               {isScanning ? (
-                <Loader2 className="w-8 h-8 animate-spin" />
+                <div className="w-full border-2 border-dashed border-primary/30 rounded-xl p-6 flex flex-col items-center gap-2 text-primary/70">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <span className="text-sm font-medium">AI image read kar raha hai...</span>
+                </div>
               ) : (
-                <Camera className="w-8 h-8" />
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={openCamera}
+                    className="border-2 border-dashed border-primary/40 rounded-xl p-4 flex flex-col items-center gap-2 text-primary hover:bg-primary/5 hover:border-primary transition-all"
+                  >
+                    <Camera className="w-7 h-7" />
+                    <span className="text-sm font-semibold">📷 Camera</span>
+                    <span className="text-[10px] text-muted-foreground text-center">Seedha camera khulega</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openGallery}
+                    className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-4 flex flex-col items-center gap-2 text-muted-foreground hover:bg-muted/30 hover:border-muted-foreground/50 transition-all"
+                  >
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">🖼️ Gallery</span>
+                    <span className="text-[10px] text-muted-foreground text-center">Saved photo chunein</span>
+                  </button>
+                </div>
               )}
-              <span className="text-sm font-medium">
-                {isScanning ? "AI reading image..." : "📷 Tap to scan handwritten paper"}
-              </span>
-              <span className="text-xs text-muted-foreground">AI will auto-fill the form</span>
-            </button>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6 pt-2">

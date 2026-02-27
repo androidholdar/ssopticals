@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, User, Users, MapPin, Phone, Eye, Trash2, Edit2, X, Lock, ArrowUpDown, Camera, Loader2 } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, User, Users, MapPin, Phone, Eye, Trash2, Edit2, X, Lock, ArrowUpDown } from "lucide-react";
 import { format, parse } from "date-fns";
 import { useWholesale } from "@/hooks/use-wholesale";
 import {
@@ -39,13 +39,6 @@ export default function CustomersPage() {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-
-  // AI Scan states
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanPreview, setScanPreview] = useState<string | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
     date: format(new Date(), 'dd/MM/yyyy'),
@@ -71,30 +64,6 @@ export default function CustomersPage() {
     notes: ""
   });
 
-  const emptyCustomer = {
-    name: "",
-    date: format(new Date(), 'dd/MM/yyyy'),
-    mobile: "",
-    address: "",
-    age: "",
-    newPowerRightSph: "",
-    newPowerRightCyl: "",
-    newPowerRightAxis: "",
-    newPowerRightAdd: "",
-    newPowerLeftSph: "",
-    newPowerLeftCyl: "",
-    newPowerLeftAxis: "",
-    newPowerLeftAdd: "",
-    oldPowerRightSph: "",
-    oldPowerRightCyl: "",
-    oldPowerRightAxis: "",
-    oldPowerRightAdd: "",
-    oldPowerLeftSph: "",
-    oldPowerLeftCyl: "",
-    oldPowerLeftAxis: "",
-    oldPowerLeftAdd: "",
-    notes: ""
-  };
 
   // Determine active preset fields
   const activePreset = presets.find(p => p.isActive) || presets[0];
@@ -107,7 +76,7 @@ export default function CustomersPage() {
     } else {
       const dateA = a.date.includes('/') ? parse(a.date, 'dd/MM/yyyy', new Date()) : new Date(a.date);
       const dateB = b.date.includes('/') ? parse(b.date, 'dd/MM/yyyy', new Date()) : new Date(b.date);
-      return dateB.getTime() - dateA.getTime();
+      return dateB.getTime() - dateA.getTime(); // Newest first
     }
   });
 
@@ -123,94 +92,6 @@ export default function CustomersPage() {
       if (form) {
         form.requestSubmit();
       }
-    }
-  };
-
-  // Input reset karo - back press ke baad bhi kaam kare
-  const resetInput = (ref: React.RefObject<HTMLInputElement>) => {
-    if (ref.current) {
-      ref.current.value = "";
-    }
-  };
-
-  // Camera seedha kholo
-  const openCamera = () => {
-    resetInput(cameraInputRef);
-    // Naya input element create karo har baar - back press fix
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.capture = "environment"; // seedha back camera
-    input.onchange = (e) => {
-      const changeEvent = e as unknown as React.ChangeEvent<HTMLInputElement>;
-      handleCameraScan(changeEvent);
-    };
-    input.click();
-  };
-
-  // Gallery se upload
-  const openGallery = () => {
-    resetInput(galleryInputRef);
-    galleryInputRef.current?.click();
-  };
-
-  // AI Camera Scan Handler - sirf form fill karta hai, save nahi karta
-  const handleCameraScan = async (e: React.ChangeEvent<HTMLInputElement> | Event) => {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (ev) => setScanPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
-
-    setIsScanning(true);
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const res = await fetch("/api/scan-prescription", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Scan failed");
-
-      const data = await res.json();
-
-      // Sirf form fill karo - auto save NAHI
-      // Eye power hamesha newPower mein, old hamesha blank
-      setNewCustomer((prev: any) => ({
-        ...prev,
-        name: data.name || prev.name,
-        mobile: data.mobile || prev.mobile,
-        address: data.address || prev.address,
-        age: data.age || prev.age,
-        newPowerRightSph: data.newPowerRightSph || "",
-        newPowerRightCyl: data.newPowerRightCyl || "",
-        newPowerRightAxis: data.newPowerRightAxis || "",
-        newPowerRightAdd: data.newPowerRightAdd || "",
-        newPowerLeftSph: data.newPowerLeftSph || "",
-        newPowerLeftCyl: data.newPowerLeftCyl || "",
-        newPowerLeftAxis: data.newPowerLeftAxis || "",
-        newPowerLeftAdd: data.newPowerLeftAdd || "",
-        oldPowerRightSph: "",
-        oldPowerRightCyl: "",
-        oldPowerRightAxis: "",
-        oldPowerRightAdd: "",
-        oldPowerLeftSph: "",
-        oldPowerLeftCyl: "",
-        oldPowerLeftAxis: "",
-        oldPowerLeftAdd: "",
-        notes: data.notes || "",
-      }));
-
-      toast({ title: "✅ Scan Ho Gaya!", description: "Form fill ho gaya. Verify karke Save karo." });
-    } catch (err) {
-      toast({ title: "Scan Failed", description: "Image read nahi hui. Manually fill karo.", variant: "destructive" });
-    } finally {
-      setIsScanning(false);
     }
   };
 
@@ -233,6 +114,7 @@ export default function CustomersPage() {
         });
       }
 
+      // Check for duplicate locally first for better UX
       const isDuplicate = customers.some(c => 
         c.name.toLowerCase() === newCustomer.name.toLowerCase() && 
         c.mobile === newCustomer.mobile
@@ -251,8 +133,30 @@ export default function CustomersPage() {
         age: newCustomer.age ? parseInt(newCustomer.age) : undefined,
       });
       setIsDialogOpen(false);
-      setScanPreview(null);
-      setNewCustomer({ ...emptyCustomer, date: format(new Date(), 'dd/MM/yyyy') });
+      setNewCustomer({
+        name: "",
+        date: format(new Date(), 'dd/MM/yyyy'),
+        mobile: "",
+        address: "",
+        age: "",
+        newPowerRightSph: "",
+        newPowerRightCyl: "",
+        newPowerRightAxis: "",
+        newPowerRightAdd: "",
+        newPowerLeftSph: "",
+        newPowerLeftCyl: "",
+        newPowerLeftAxis: "",
+        newPowerLeftAdd: "",
+        oldPowerRightSph: "",
+        oldPowerRightCyl: "",
+        oldPowerRightAxis: "",
+        oldPowerRightAdd: "",
+        oldPowerLeftSph: "",
+        oldPowerLeftCyl: "",
+        oldPowerLeftAxis: "",
+        oldPowerLeftAdd: "",
+        notes: ""
+      });
     } catch (error) {
       toast({ title: "Error", description: "Failed to create customer.", variant: "destructive" });
     }
@@ -278,6 +182,7 @@ export default function CustomersPage() {
         });
       }
 
+      // Check for duplicate (excluding the current customer being edited)
       const isDuplicate = customers.some(c => 
         c.id !== selectedCustomer.id &&
         c.name.toLowerCase() === selectedCustomer.name.toLowerCase() && 
@@ -389,7 +294,9 @@ export default function CustomersPage() {
                 value={currentData.mobile} 
                 onChange={e => {
                   const val = e.target.value.replace(/\D/g, '');
-                  if (val.length <= 10) setter(val);
+                  if (val.length <= 10) {
+                    setter(val);
+                  }
                 }} 
               />
             </div>
@@ -428,25 +335,123 @@ export default function CustomersPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Right Eye (R)</Label>
                 <div className="grid grid-cols-4 gap-4">
-                  {['newPowerRightSph','newPowerRightCyl','newPowerRightAxis','newPowerRightAdd'].map((field, i) => (
-                    <div className="space-y-1" key={field}>
-                      <Label className="text-[10px] uppercase">{['SPH','CYL','AXIS','Add.'][i]}</Label>
-                      <Input placeholder={['SPH','CYL','AXIS','Add.'][i]} value={currentData[field] || ""}
-                        onChange={e => { if (isEdit) setSelectedCustomer((p:any) => ({...p,[field]:e.target.value})); else setNewCustomer((p:any) => ({...p,[field]:e.target.value})); }} />
-                    </div>
-                  ))}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.newPowerRightSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.newPowerRightCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.newPowerRightAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.newPowerRightAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
                 <div className="grid grid-cols-4 gap-4">
-                  {['newPowerLeftSph','newPowerLeftCyl','newPowerLeftAxis','newPowerLeftAdd'].map((field, i) => (
-                    <div className="space-y-1" key={field}>
-                      <Label className="text-[10px] uppercase">{['SPH','CYL','AXIS','Add.'][i]}</Label>
-                      <Input placeholder={['SPH','CYL','AXIS','Add.'][i]} value={currentData[field] || ""}
-                        onChange={e => { if (isEdit) setSelectedCustomer((p:any) => ({...p,[field]:e.target.value})); else setNewCustomer((p:any) => ({...p,[field]:e.target.value})); }} />
-                    </div>
-                  ))}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.newPowerLeftSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.newPowerLeftCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.newPowerLeftAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.newPowerLeftAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -460,35 +465,136 @@ export default function CustomersPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Right Eye (R)</Label>
                 <div className="grid grid-cols-4 gap-4">
-                  {['oldPowerRightSph','oldPowerRightCyl','oldPowerRightAxis','oldPowerRightAdd'].map((field, i) => (
-                    <div className="space-y-1" key={field}>
-                      <Label className="text-[10px] uppercase">{['SPH','CYL','AXIS','Add.'][i]}</Label>
-                      <Input placeholder={['SPH','CYL','AXIS','Add.'][i]} value={currentData[field] || ""}
-                        onChange={e => { if (isEdit) setSelectedCustomer((p:any) => ({...p,[field]:e.target.value})); else setNewCustomer((p:any) => ({...p,[field]:e.target.value})); }} />
-                    </div>
-                  ))}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.oldPowerRightSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.oldPowerRightCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.oldPowerRightAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.oldPowerRightAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
                 <div className="grid grid-cols-4 gap-4">
-                  {['oldPowerLeftSph','oldPowerLeftCyl','oldPowerLeftAxis','oldPowerLeftAdd'].map((field, i) => (
-                    <div className="space-y-1" key={field}>
-                      <Label className="text-[10px] uppercase">{['SPH','CYL','AXIS','Add.'][i]}</Label>
-                      <Input placeholder={['SPH','CYL','AXIS','Add.'][i]} value={currentData[field] || ""}
-                        onChange={e => { if (isEdit) setSelectedCustomer((p:any) => ({...p,[field]:e.target.value})); else setNewCustomer((p:any) => ({...p,[field]:e.target.value})); }} />
-                    </div>
-                  ))}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">SPH</Label>
+                    <Input 
+                      placeholder="SPH"
+                      value={currentData.oldPowerLeftSph || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftSph: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftSph: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">CYL</Label>
+                    <Input 
+                      placeholder="CYL"
+                      value={currentData.oldPowerLeftCyl || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftCyl: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftCyl: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">AXIS</Label>
+                    <Input 
+                      placeholder="AXIS"
+                      value={currentData.oldPowerLeftAxis || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase">Add.</Label>
+                    <Input 
+                      placeholder="Add."
+                      value={currentData.oldPowerLeftAdd || ""} 
+                      onChange={e => {
+                        if (isEdit) {
+                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: e.target.value }));
+                        } else {
+                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: e.target.value }));
+                        }
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         );
-      case 'notes':
+       case 'notes':
         return (
           <div className="space-y-2 col-span-2">
             <Label>{label}</Label>
-            <Textarea value={currentData.notes} onChange={e => setter(e.target.value)} />
+            <Textarea 
+              value={currentData.notes} 
+              onChange={e => setter(e.target.value)} 
+            />
           </div>
         );
       default:
@@ -530,32 +636,9 @@ export default function CustomersPage() {
               </Button>
             </>
           ) : isUnlocked && (
-            <>
-              {/* AI Camera Scan Button */}
-              <Button
-                variant="outline"
-                className="shadow-lg border-primary/30 text-primary hover:bg-primary/10"
-                onClick={() => {
-                  setScanPreview(null);
-                  setNewCustomer({ ...emptyCustomer, date: format(new Date(), 'dd/MM/yyyy') });
-                  setIsDialogOpen(true);
-                  setTimeout(() => openCamera(), 300);
-                }}
-                disabled={isScanning}
-              >
-                {isScanning ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Camera className="w-4 h-4 mr-2" />
-                )}
-                Scan Paper
-              </Button>
-
-              {/* New Customer Button */}
-              <Button onClick={() => { setScanPreview(null); setIsDialogOpen(true); }} className="shadow-lg shadow-primary/20">
-                <Plus className="w-4 h-4 mr-2" /> New Customer
-              </Button>
-            </>
+            <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20">
+              <Plus className="w-4 h-4 mr-2" /> New Customer
+            </Button>
           )}
         </div>
       </div>
@@ -609,27 +692,8 @@ export default function CustomersPage() {
         )}
       </div>
 
-      {/* Hidden camera input */}
-      {/* Camera input - capture seedha camera kholta hai */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleCameraScan}
-      />
-      {/* Gallery fallback input - bina capture ke */}
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleCameraScan}
-      />
-
       {/* New Customer Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setScanPreview(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
           onKeyDown={handleKeyDown}
@@ -637,73 +701,7 @@ export default function CustomersPage() {
           <DialogHeader>
             <DialogTitle>New Customer Record</DialogTitle>
           </DialogHeader>
-
-          {/* Scan Preview & Rescan option */}
-          {scanPreview && (
-            <div className="relative rounded-lg overflow-hidden border border-primary/20 bg-muted/30">
-              <img src={scanPreview} alt="Scanned prescription" className="w-full max-h-40 object-contain" />
-              <div className="absolute top-2 right-2 flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="text-xs"
-                  onClick={openCamera}
-                  disabled={isScanning}
-                >
-                  {isScanning ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
-                  Rescan
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setScanPreview(null)}>
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
-              {isScanning && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <div className="text-white text-sm flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> AI reading image...
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Scan buttons inside form if no preview */}
-          {!scanPreview && (
-            <div className="space-y-2">
-              {isScanning ? (
-                <div className="w-full border-2 border-dashed border-primary/30 rounded-xl p-6 flex flex-col items-center gap-2 text-primary/70">
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                  <span className="text-sm font-medium">AI image read kar raha hai...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={openCamera}
-                    className="border-2 border-dashed border-primary/40 rounded-xl p-4 flex flex-col items-center gap-2 text-primary hover:bg-primary/5 hover:border-primary transition-all"
-                  >
-                    <Camera className="w-7 h-7" />
-                    <span className="text-sm font-semibold">📷 Camera</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Seedha camera khulega</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openGallery}
-                    className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-4 flex flex-col items-center gap-2 text-muted-foreground hover:bg-muted/30 hover:border-muted-foreground/50 transition-all"
-                  >
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-sm font-semibold">🖼️ Gallery</span>
-                    <span className="text-[10px] text-muted-foreground text-center">Saved photo chunein</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          <form onSubmit={handleSubmit} className="space-y-6 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label>Date</Label>
@@ -727,11 +725,12 @@ export default function CustomersPage() {
                   {renderField(field.fieldKey, field.label, false)}
                 </div>
               ))}
+
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setScanPreview(null); }}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending || isScanning}>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Creating..." : "Create Record"}
               </Button>
             </DialogFooter>
@@ -892,8 +891,14 @@ export default function CustomersPage() {
                   )}
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-4 mt-6">
-                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsEditMode(true)}>
-                    <Edit2 className="w-4 h-4 mr-2" /> Edit Record
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full sm:w-auto"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Edit Record
                   </Button>
                   <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setSelectedCustomer(null)}>Close</Button>
                 </DialogFooter>
@@ -902,36 +907,58 @@ export default function CustomersPage() {
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
 
 function CustomerCard({
-  customer, onClick, onLongPress, isSelected, isSelectionMode
+  customer,
+  onClick,
+  onLongPress,
+  isSelected,
+  isSelectionMode
 }: {
-  customer: any, onClick: () => void, onLongPress: () => void, isSelected: boolean, isSelectionMode: boolean
+  customer: any,
+  onClick: () => void,
+  onLongPress: () => void,
+  isSelected: boolean,
+  isSelectionMode: boolean
 }) {
   const { isUnlocked } = useWholesale();
-  const displayDate = customer.date.includes('/') ? customer.date : format(new Date(customer.date), 'dd/MM/yyyy');
+  const displayDate = customer.date.includes('/')
+    ? customer.date
+    : format(new Date(customer.date), 'dd/MM/yyyy');
+
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); };
+    const handleScroll = () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
     window.addEventListener('scroll', handleScroll, true);
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, []);
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    const coords = 'touches' in e ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+    const coords = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
     touchStartRef.current = coords;
     longPressTimer.current = setTimeout(onLongPress, 500);
   };
 
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!touchStartRef.current) return;
-    const coords = 'touches' in e ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
-    if (Math.abs(coords.x - touchStartRef.current.x) > 10 || Math.abs(coords.y - touchStartRef.current.y) > 10) {
+    const coords = 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY };
+    const dx = Math.abs(coords.x - touchStartRef.current.x);
+    const dy = Math.abs(coords.y - touchStartRef.current.y);
+    if (dx > 10 || dy > 10) {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
     }
   };
@@ -943,10 +970,19 @@ function CustomerCard({
 
   return (
     <Card 
-      className={cn("group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50 select-none", isSelected && "border-primary bg-primary/5 ring-1 ring-primary")}
+      className={cn(
+        "group hover-elevate active-elevate-2 cursor-pointer border-muted-foreground/10 overflow-hidden transition-all hover:border-primary/50 select-none",
+        isSelected && "border-primary bg-primary/5 ring-1 ring-primary"
+      )}
       onContextMenu={(e) => e.preventDefault()}
-      onClick={onClick} onMouseDown={handleStart} onMouseMove={handleMove} onMouseUp={handleEnd} onMouseLeave={handleEnd}
-      onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={handleEnd}
+      onClick={onClick}
+      onMouseDown={handleStart}
+      onMouseMove={handleMove}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onTouchStart={handleStart}
+      onTouchMove={handleMove}
+      onTouchEnd={handleEnd}
     >
       <CardContent className="p-0">
         <div className="flex items-center gap-4 p-4">
@@ -982,4 +1018,3 @@ function CustomerCard({
     </Card>
   );
 }
-

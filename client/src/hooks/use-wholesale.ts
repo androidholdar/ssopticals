@@ -7,9 +7,20 @@ interface WholesaleState {
   lock: () => void;
 }
 
-export const useWholesale = create<WholesaleState>()((set) => ({
-  isUnlocked: false,
-  wholesalePassword: null,
-  unlock: (password: string) => set({ isUnlocked: true, wholesalePassword: password }),
-  lock: () => set({ isUnlocked: false, wholesalePassword: null }),
-}));
+export const useWholesale = create<WholesaleState>()((set) => {
+  // Try to restore from sessionStorage on initialization
+  const savedPassword = sessionStorage.getItem("wholesale_password");
+
+  return {
+    isUnlocked: !!savedPassword,
+    wholesalePassword: savedPassword,
+    unlock: (password: string) => {
+      sessionStorage.setItem("wholesale_password", password);
+      set({ isUnlocked: true, wholesalePassword: password });
+    },
+    lock: () => {
+      sessionStorage.removeItem("wholesale_password");
+      set({ isUnlocked: false, wholesalePassword: null });
+    },
+  };
+});

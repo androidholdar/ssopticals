@@ -293,7 +293,7 @@ export class DatabaseStorage implements IStorage {
 
             if (fields && Array.isArray(fields)) {
               for (const field of fields) {
-                const { presetId: _, ...fieldRest } = field;
+                const { presetId: _, id: __, ...fieldRest } = field;
                 const filteredField = filterData(formPresetFields, fieldRest);
                 await tx.insert(formPresetFields).values({
                   ...filteredField,

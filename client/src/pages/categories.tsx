@@ -47,7 +47,7 @@ export default function CategoriesPage() {
   const { isUnlocked } = useWholesale();
 
   const [search, setSearch] = useState("");
-  const [editingNode, setEditingNode] = useState<Partial<Category> | null>(null);
+  const [editingNode, setEditingNode] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<{ id: number; name: string } | null>(null);
@@ -60,13 +60,13 @@ export default function CategoriesPage() {
   // Navigation Logic
   const currentId = currentPath[currentPath.length - 1] || null;
   
-  const displayCategories = categories.filter((c: any) => {
+  const displayCategories = categories.filter((c: Category) => {
     const nameMatches = (c.name || "").toLowerCase().includes(search.toLowerCase());
     const isChild = (currentId === null)
       ? (!c.parentId || c.parentId === 0)
       : (c.parentId === currentId);
     return isChild && nameMatches;
-  }).sort((a: any, b: any) => {
+  }).sort((a: Category, b: Category) => {
     if (a.type !== b.type) return a.type === 'FOLDER' ? -1 : 1;
     return (a.sortOrder || 0) - (b.sortOrder || 0);
   });
@@ -153,11 +153,11 @@ export default function CategoriesPage() {
   };
 
   const handleMoveUp = async (node: Category) => {
-    const currentIndex = displayCategories.findIndex((c: any) => c.id === node.id);
+    const currentIndex = displayCategories.findIndex((c: Category) => c.id === node.id);
     if (currentIndex > 0) {
-      const prevNode: any = displayCategories[currentIndex - 1];
-      const currentSort = node.sortOrder || 0;
-      const prevSort = prevNode.sortOrder || 0;
+      const prevNode = displayCategories[currentIndex - 1];
+      const currentSort = node.sortOrder ?? 0;
+      const prevSort = prevNode.sortOrder ?? 0;
 
       await updateMutation.mutateAsync({ id: node.id, sortOrder: prevSort });
       await updateMutation.mutateAsync({ id: prevNode.id, sortOrder: currentSort });
@@ -166,11 +166,11 @@ export default function CategoriesPage() {
   };
 
   const handleMoveDown = async (node: Category) => {
-    const currentIndex = displayCategories.findIndex((c: any) => c.id === node.id);
+    const currentIndex = displayCategories.findIndex((c: Category) => c.id === node.id);
     if (currentIndex < displayCategories.length - 1) {
-      const nextNode: any = displayCategories[currentIndex + 1];
-      const currentSort = node.sortOrder || 0;
-      const nextSort = nextNode.sortOrder || 0;
+      const nextNode = displayCategories[currentIndex + 1];
+      const currentSort = node.sortOrder ?? 0;
+      const nextSort = nextNode.sortOrder ?? 0;
 
       await updateMutation.mutateAsync({ id: node.id, sortOrder: nextSort });
       await updateMutation.mutateAsync({ id: nextNode.id, sortOrder: currentSort });
@@ -190,11 +190,11 @@ export default function CategoriesPage() {
     if (!editingNode) return;
 
     try {
-      if ('id' in editingNode && editingNode.id) {
-        const { id, ...updates } = editingNode as any;
+      if (editingNode.id) {
+        const { id, updatedAt, createdAt, ...updates } = editingNode;
         await updateMutation.mutateAsync({ id, ...updates });
       } else {
-        await createMutation.mutateAsync(editingNode as any);
+        await createMutation.mutateAsync(editingNode);
       }
       setIsDialogOpen(false);
       setEditingNode(null);
@@ -281,7 +281,7 @@ export default function CategoriesPage() {
           <div className="px-4 py-2 bg-muted/10 border-b flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-primary cursor-pointer" onClick={() => setCurrentPath([])}>Lens</span>
             {currentPath.map((id: number, index: number) => {
-              const cat = categories.find((c: any) => c.id === id);
+              const cat = (categories as Category[]).find((c: Category) => c.id === id);
               return (
                 <div key={id} className="flex items-center gap-2">
                   <ChevronRight className="w-3 h-3" />
@@ -292,7 +292,7 @@ export default function CategoriesPage() {
                     )}
                     onClick={() => setCurrentPath(currentPath.slice(0, index + 1))}
                   >
-                    {(cat as any)?.name}
+                    {cat?.name}
                   </span>
                 </div>
               );
@@ -308,7 +308,7 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2">
-              {displayCategories.map((node: any) => (
+              {displayCategories.map((node: Category) => (
                 <div 
                   key={node.id}
                   className={cn(
@@ -413,7 +413,7 @@ export default function CategoriesPage() {
                 <Label>Type</Label>
                 <Select 
                   value={editingNode?.type} 
-                  onValueChange={(val) => setEditingNode(prev => ({ ...prev, type: val as "FOLDER" | "ITEM" }))}
+                  onValueChange={(val) => setEditingNode((prev: any) => ({ ...prev, type: val as "FOLDER" | "ITEM" }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -428,7 +428,7 @@ export default function CategoriesPage() {
                 <Label>Name</Label>
                 <Input 
                   value={editingNode?.name || ''} 
-                  onChange={e => setEditingNode(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setEditingNode((prev: any) => ({ ...prev, name: e.target.value }))}
                   required 
                 />
               </div>
@@ -445,7 +445,7 @@ export default function CategoriesPage() {
                         type="number" 
                         className="pl-9" 
                         value={editingNode?.customerPrice || ''} 
-                        onChange={e => setEditingNode(prev => ({ ...prev, customerPrice: parseFloat(e.target.value) }))}
+                        onChange={e => setEditingNode((prev: any) => ({ ...prev, customerPrice: parseFloat(e.target.value) }))}
                       />
                     </div>
                   </div>
@@ -457,7 +457,7 @@ export default function CategoriesPage() {
                         type="number" 
                         className="pl-9"
                         value={editingNode?.wholesalePrice || ''} 
-                        onChange={e => setEditingNode(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
+                        onChange={e => setEditingNode((prev: any) => ({ ...prev, wholesalePrice: parseFloat(e.target.value) }))}
                       />
                     </div>
                   </div>

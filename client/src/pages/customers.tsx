@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useCustomers, useCreateCustomer, useDeleteCustomer, useUpdateCustomer, useBulkDeleteCustomers } from "@/hooks/use-customers";
 import { usePresets } from "@/hooks/use-presets";
+import { type Customer } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +38,7 @@ export default function CustomersPage() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
@@ -128,9 +129,12 @@ export default function CustomersPage() {
         });
       }
 
+      const { age, ...rest } = newCustomer;
       await createMutation.mutateAsync({
-        ...newCustomer,
-        age: newCustomer.age ? parseInt(newCustomer.age) : undefined,
+        ...rest,
+        name: newCustomer.name || "",
+        date: newCustomer.date || format(new Date(), 'dd/MM/yyyy'),
+        age: age ? parseInt(age.toString()) : undefined,
       });
       setIsDialogOpen(false);
       setNewCustomer({
@@ -197,11 +201,11 @@ export default function CustomersPage() {
         });
       }
 
-      const { id, createdAt, ...updates } = selectedCustomer;
+      const { id, createdAt, age, ...updates } = selectedCustomer as any;
       await updateMutation.mutateAsync({
         id,
         ...updates,
-        age: updates.age ? parseInt(updates.age) : undefined,
+        age: age ? parseInt(age.toString()) : undefined,
       });
       setIsEditMode(false);
     } catch (error) {
@@ -254,11 +258,13 @@ export default function CustomersPage() {
 
   const renderField = (key: string, label: string, isEdit: boolean = false) => {
     const currentData = isEdit ? selectedCustomer : newCustomer;
+    if (!currentData) return null;
+
     const setter = (val: any) => {
       if (isEdit) {
-        setSelectedCustomer((prev: any) => ({ ...prev, [key === 'lens_power' ? 'lensPowerCurrent' : key]: val }));
+        setSelectedCustomer((prev: any) => prev ? ({ ...prev, [key]: val }) : null);
       } else {
-        setNewCustomer((prev: any) => ({ ...prev, [key === 'lens_power' ? 'lensPowerCurrent' : key]: val }));
+        setNewCustomer((prev: any) => ({ ...prev, [key]: val }));
       }
     };
 
@@ -755,7 +761,7 @@ export default function CustomersPage() {
                     </Button>
                   )}
                   {isUnlocked && (
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedCustomer.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => selectedCustomer && handleDelete(selectedCustomer.id)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   )}
@@ -775,8 +781,8 @@ export default function CustomersPage() {
                         type="text"
                         placeholder="dd/mm/yyyy"
                         className="pl-9"
-                        value={selectedCustomer.date}
-                        onChange={e => setSelectedCustomer({ ...selectedCustomer, date: e.target.value })}
+                    value={selectedCustomer?.date || ""}
+                    onChange={e => setSelectedCustomer(prev => prev ? ({ ...prev, date: e.target.value }) : null)}
                         required
                       />
                     </div>
@@ -802,9 +808,9 @@ export default function CustomersPage() {
                   <div className="col-span-2 sm:col-span-1">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Date</Label>
                     <p className="text-lg font-medium">
-                      {selectedCustomer.date.includes('/')
-                        ? selectedCustomer.date
-                        : format(new Date(selectedCustomer.date), 'dd/MM/yyyy')}
+                      {selectedCustomer?.date.includes('/')
+                        ? selectedCustomer?.date
+                        : format(new Date(selectedCustomer?.date || ""), 'dd/MM/yyyy')}
                     </p>
                   </div>
                   <div className="col-span-2 sm:col-span-1">
@@ -919,7 +925,7 @@ function CustomerCard({
   isSelected,
   isSelectionMode
 }: {
-  customer: any,
+  customer: Customer,
   onClick: () => void,
   onLongPress: () => void,
   isSelected: boolean,

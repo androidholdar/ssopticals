@@ -81,19 +81,7 @@ export class DatabaseStorage implements IStorage {
 
   // Categories
   async getCategories(): Promise<Category[]> {
-    try {
-      return await db.select().from(categories).orderBy(categories.sortOrder, categories.name);
-    } catch (err) {
-      console.error("Error fetching categories with sortOrder:", err);
-      try {
-        return await db.select().from(categories).orderBy(categories.name);
-      } catch (err2) {
-        console.error("Critical error fetching categories:", err2);
-        // Last resort: raw SQL to fetch whatever columns are there
-        const result = await db.execute(sql`SELECT * FROM categories ORDER BY name`);
-        return result.rows as Category[];
-      }
-    }
+    return await db.select().from(categories).orderBy(categories.sortOrder, categories.name);
   }
 
   async getCategory(id: number): Promise<Category | undefined> {
@@ -102,49 +90,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCategory(category: CreateCategoryRequest): Promise<Category> {
-    let currentValues: any = { ...category };
-
-    // Try to insert with all fields, then progressively remove optional ones if it fails
-    const tryInsert = async (vals: any): Promise<Category> => {
-      try {
-        const [newCategory] = await db.insert(categories).values(vals).returning();
-        return newCategory;
-      } catch (err: any) {
-        // If column error, try removing fields one by one
-        if (err.message.includes('column') || err.code === '42703') {
-          const keys = Object.keys(vals);
-          // Prioritize keeping 'name'
-          const fieldToRemove = keys.find(k => k !== 'name' && k !== 'id');
-          if (fieldToRemove) {
-            const { [fieldToRemove]: _, ...rest } = vals;
-            console.log(`Retrying category creation without field: ${fieldToRemove}`);
-            return tryInsert(rest);
-          }
-        }
-        throw err;
-      }
-    };
-
-    return tryInsert(currentValues);
+    const [newCategory] = await db.insert(categories).values(category).returning();
+    return newCategory;
   }
 
   async updateCategory(id: number, updates: UpdateCategoryRequest): Promise<Category> {
-    try {
-      const [updated] = await db.update(categories)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(eq(categories.id, id))
-        .returning();
-      return updated;
-    } catch (err) {
-      console.error("Error updating category with full schema:", err);
-      // Fallback: try without updatedAt
-      const { updatedAt, ...rest } = updates as any;
-      const [updated] = await db.update(categories)
-        .set(rest)
-        .where(eq(categories.id, id))
-        .returning();
-      return updated;
-    }
+    const [updated] = await db.update(categories)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(categories.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteCategory(id: number): Promise<void> {

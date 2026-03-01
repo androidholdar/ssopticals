@@ -273,19 +273,27 @@ export async function registerRoutes(
   // Backup and Restore
   app.get("/api/backup", async (req, res) => {
     try {
+      const cats = await storage.getCategories();
+      const custs = await storage.getCustomers();
+      const pres = await storage.getPresets();
+      const sets = await storage.getSettings();
+
       const data = {
-        categories: await storage.getCategories(),
-        customers: await storage.getCustomers(),
-        presets: await storage.getPresets(),
-        settings: await storage.getSettings(),
-        version: "1.0",
+        categories: cats,
+        customers: custs,
+        presets: pres,
+        settings: sets,
+        version: "1.1",
         timestamp: new Date().toISOString()
       };
+
+      const fileName = `optician_backup_${new Date().toISOString().split('T')[0]}.json`;
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', 'attachment; filename=optician_backup.json');
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ message: "Failed to create backup" });
+      console.error("Backup failed:", err);
+      res.status(500).json({ message: "Failed to create backup: " + (err as Error).message });
     }
   });
 

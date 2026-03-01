@@ -231,61 +231,94 @@ export class DatabaseStorage implements IStorage {
   }
 
   async restoreBackup(data: any): Promise<void> {
+    // Utility to filter keys based on table schema
+    const filterData = (table: any, item: any) => {
+      const allowedKeys = Object.keys(table);
+      const filtered: any = {};
+      for (const key of allowedKeys) {
+        if (key in item) {
+          filtered[key] = item[key];
+        }
+      }
+      return filtered;
+    };
+
     await db.transaction(async (tx) => {
-      // Clear existing data (order matters for foreign keys)
-      await tx.delete(formPresetFields);
-      await tx.delete(formPresets);
-      await tx.delete(customers);
-      await tx.delete(categories);
-      await tx.delete(settings);
+      try {
+        // Clear existing data (order matters for foreign keys)
+        await tx.delete(formPresetFields);
+        await tx.delete(formPresets);
+        await tx.delete(customers);
+        await tx.delete(categories);
+        await tx.delete(settings);
 
-      // Restore Settings
-      if (data.settings) {
-        await tx.insert(settings).values({
-          wholesalePasswordHash: data.settings.wholesalePasswordHash,
-          masterPasswordHash: data.settings.masterPasswordHash
-        });
-      }
-
-      // Restore Categories (preserve IDs to keep parent-child relations)
-      if (data.categories && Array.isArray(data.categories)) {
-        for (const cat of data.categories) {
-          const { updatedAt, ...rest } = cat;
-          await tx.insert(categories).values({
-            ...rest,
-            updatedAt: updatedAt ? new Date(updatedAt) : new Date()
-          });
+        // Restore Settings
+        if (data.settings) {
+          const filtered = filterData(settings, data.settings);
+          if (Object.keys(filtered).length > 0) {
+            await tx.insert(settings).values(filtered);
+          }
         }
-      }
 
-      // Restore Customers
-      if (data.customers && Array.isArray(data.customers)) {
-        for (const cust of data.customers) {
-          const { createdAt, ...rest } = cust;
-          await tx.insert(customers).values({
-            ...rest,
-            createdAt: createdAt ? new Date(createdAt) : new Date()
-          });
+        // Restore Categories (preserve IDs to keep parent-child relations)
+        if (data.categories && Array.isArray(data.categories)) {
+          for (const cat of data.categories) {
+            const { updatedAt, ...rest } = cat;
+            const filtered = filterData(categories, rest);
+            await tx.insert(categories).values({
+              ...filtered,
+              updatedAt: updatedAt ? new Date(updatedAt) : new Date()
+            });
+          }
         }
-      }
 
-      // Restore Presets and Fields
-      if (data.presets && Array.isArray(data.presets)) {
-        for (const preset of data.presets) {
-          const { fields, ...presetData } = preset;
-          await tx.insert(formPresets).values(presetData);
-          if (fields && Array.isArray(fields)) {
-            for (const field of fields) {
-              await tx.insert(formPresetFields).values(field);
+        // Restore Customers
+        if (data.customers && Array.isArray(data.customers)) {
+          for (const cust of data.customers) {
+            const { createdAt, ...rest } = cust;
+            const filtered = filterData(customers, rest);
+            await tx.insert(customers).values({
+              ...filtered,
+              createdAt: createdAt ? new Date(createdAt) : new Date()
+            });
+          }
+        }
+
+        // Restore Presets and Fields
+        if (data.presets && Array.isArray(data.presets)) {
+          for (const preset of data.presets) {
+            const { fields, ...presetData } = preset;
+            const filteredPreset = filterData(formPresets, presetData);
+            const [newPreset] = await tx.insert(formPresets).values(filteredPreset).returning();
+
+            if (fields && Array.isArray(fields)) {
+              for (const field of fields) {
+                const { presetId: _, ...fieldRest } = field;
+                const filteredField = filterData(formPresetFields, fieldRest);
+                await tx.insert(formPresetFields).values({
+                  ...filteredField,
+                  presetId: newPreset.id
+                });
+              }
             }
           }
         }
-      }
 
-      // Reset sequences for all tables since we manually inserted IDs
-      const tables = ['categories', 'customers', 'form_presets', 'form_preset_fields', 'settings'];
-      for (const table of tables) {
-        await tx.execute(sql.raw(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE(MAX(id), 1)) FROM ${table}`));
+        // Reset sequences for all tables since we manually inserted IDs
+        // We use a safer SQL query that handles potential missing sequences or custom names
+        const tableNames = ['categories', 'customers', 'form_presets', 'form_preset_fields', 'settings'];
+        for (const name of tableNames) {
+          await tx.execute(sql.raw(`
+            SELECT setval(
+              pg_get_serial_sequence('${name}', 'id'),
+              (SELECT COALESCE(MAX(id), 0) + 1 FROM ${name}),
+              false
+            )
+          `));
+        }
+      } catch (err: any) {
+        console.error("Critical error during restoration:", err);
+        throw new Error("Failed to restore backup: " + err.message);
       }
     });
   }

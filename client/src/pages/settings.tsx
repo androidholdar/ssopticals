@@ -80,8 +80,25 @@ export default function SettingsPage() {
     }
   };
 
-  const handleBackup = () => {
-    window.location.href = "/api/backup";
+  const handleBackup = async () => {
+    try {
+      const response = await fetch("/api/backup");
+      if (!response.ok) throw new Error("Failed to generate backup");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `optician_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Backup Successful", description: "Your backup file has been downloaded." });
+    } catch (error: any) {
+      toast({ title: "Backup Failed", description: error.message, variant: "destructive" });
+    }
   };
 
   const handleRestoreClick = () => {
@@ -103,9 +120,11 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        toast({ title: "Restore Successful", description: "Application data has been restored." });
-        // Invalidate all queries to refresh the app data
-        queryClient.invalidateQueries();
+        toast({ title: "Restore Successful", description: "Application data has been restored. Refreshing..." });
+        // Invalidate all queries and force a reload to ensure data is updated
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         const err = await response.json();
         throw new Error(err.message || "Restore failed");

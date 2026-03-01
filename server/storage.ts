@@ -248,69 +248,44 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Restore Categories (preserve IDs to keep parent-child relations)
-      if (data.categories) {
+      if (data.categories && Array.isArray(data.categories)) {
         for (const cat of data.categories) {
+          const { updatedAt, ...rest } = cat;
           await tx.insert(categories).values({
-            id: cat.id,
-            parentId: cat.parentId,
-            name: cat.name,
-            type: cat.type,
-            customerPrice: cat.customerPrice,
-            wholesalePrice: cat.wholesalePrice,
-            sortOrder: cat.sortOrder,
-            updatedAt: new Date(cat.updatedAt)
+            ...rest,
+            updatedAt: updatedAt ? new Date(updatedAt) : new Date()
           });
         }
       }
 
       // Restore Customers
-      if (data.customers) {
+      if (data.customers && Array.isArray(data.customers)) {
         for (const cust of data.customers) {
+          const { createdAt, ...rest } = cust;
           await tx.insert(customers).values({
-            id: cust.id,
-            date: cust.date,
-            name: cust.name,
-            age: cust.age,
-            mobile: cust.mobile,
-            newPowerRightSph: cust.newPowerRightSph,
-            newPowerRightCyl: cust.newPowerRightCyl,
-            newPowerRightAxis: cust.newPowerRightAxis,
-            newPowerLeftSph: cust.newPowerLeftSph,
-            newPowerLeftCyl: cust.newPowerLeftCyl,
-            newPowerLeftAxis: cust.newPowerLeftAxis,
-            oldPowerRightSph: cust.oldPowerRightSph,
-            oldPowerRightCyl: cust.oldPowerRightCyl,
-            oldPowerRightAxis: cust.oldPowerRightAxis,
-            oldPowerLeftSph: cust.oldPowerLeftSph,
-            oldPowerLeftCyl: cust.oldPowerLeftCyl,
-            oldPowerLeftAxis: cust.oldPowerLeftAxis,
-            notes: cust.notes,
-            createdAt: new Date(cust.createdAt)
+            ...rest,
+            createdAt: createdAt ? new Date(createdAt) : new Date()
           });
         }
       }
 
       // Restore Presets and Fields
-      if (data.presets) {
+      if (data.presets && Array.isArray(data.presets)) {
         for (const preset of data.presets) {
-          await tx.insert(formPresets).values({
-            id: preset.id,
-            name: preset.name,
-            isActive: preset.isActive
-          });
-          if (preset.fields) {
-            for (const field of preset.fields) {
-              await tx.insert(formPresetFields).values({
-                id: field.id,
-                presetId: field.presetId,
-                fieldKey: field.fieldKey,
-                label: field.label,
-                isEnabled: field.isEnabled,
-                orderIndex: field.orderIndex
-              });
+          const { fields, ...presetData } = preset;
+          await tx.insert(formPresets).values(presetData);
+          if (fields && Array.isArray(fields)) {
+            for (const field of fields) {
+              await tx.insert(formPresetFields).values(field);
             }
           }
         }
+      }
+
+      // Reset sequences for all tables since we manually inserted IDs
+      const tables = ['categories', 'customers', 'form_presets', 'form_preset_fields', 'settings'];
+      for (const table of tables) {
+        await tx.execute(sql.raw(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE(MAX(id), 1)) FROM ${table}`));
       }
     });
   }

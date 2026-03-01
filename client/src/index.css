@@ -8,36 +8,202 @@
   --font-display: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* Indigo-Violet Theme - Professional & Trustworthy */
+  /* ── Theme 1: Purple (Default) ── */
   --background: 210 20% 98%;
   --foreground: 224 71% 4%;
-  
   --primary: 262 83% 58%;
   --primary-foreground: 210 20% 98%;
-  
   --secondary: 220 14% 96%;
   --secondary-foreground: 220.9 39.3% 11%;
-  
   --muted: 220 14.3% 95.9%;
   --muted-foreground: 220 8.9% 46.1%;
-  
   --accent: 262 83% 58%;
   --accent-foreground: 210 20% 98%;
-  
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 20% 98%;
-
   --border: 220 13% 91%;
   --input: 220 13% 91%;
   --ring: 262 83% 58%;
-  
   --radius: 0.75rem;
-
   --card: 0 0% 100%;
   --card-foreground: 224 71% 4%;
-
   --popover: 0 0% 100%;
   --popover-foreground: 224 71% 4%;
+  --sidebar: 240 20% 12%;
+  --sidebar-foreground: 260 30% 80%;
+}
+
+/* ══════════════════════════════════════
+   THEME 2: Deep Blue + Gold
+══════════════════════════════════════ */
+[data-theme="blue-gold"] {
+  --background: 210 30% 96%;
+  --foreground: 215 50% 8%;
+  --primary: 215 70% 28%;
+  --primary-foreground: 45 90% 85%;
+  --secondary: 210 20% 92%;
+  --secondary-foreground: 215 50% 15%;
+  --muted: 210 20% 93%;
+  --muted-foreground: 215 20% 45%;
+  --accent: 42 90% 45%;
+  --accent-foreground: 215 50% 8%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 210 20% 85%;
+  --input: 210 20% 85%;
+  --ring: 42 90% 45%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 50% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 50% 8%;
+  --sidebar: 215 60% 12%;
+  --sidebar-foreground: 42 60% 75%;
+}
+
+/* ══════════════════════════════════════
+   THEME 3: Emerald Green
+══════════════════════════════════════ */
+[data-theme="emerald"] {
+  --background: 150 30% 97%;
+  --foreground: 160 50% 6%;
+  --primary: 158 64% 28%;
+  --primary-foreground: 150 60% 95%;
+  --secondary: 150 20% 93%;
+  --secondary-foreground: 160 40% 12%;
+  --muted: 150 15% 93%;
+  --muted-foreground: 155 15% 42%;
+  --accent: 158 64% 28%;
+  --accent-foreground: 150 60% 95%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 150 20% 87%;
+  --input: 150 20% 87%;
+  --ring: 158 64% 28%;
+  --card: 0 0% 100%;
+  --card-foreground: 160 50% 6%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 160 50% 6%;
+  --sidebar: 160 55% 8%;
+  --sidebar-foreground: 150 40% 75%;
+}
+
+/* ══════════════════════════════════════
+   THEME 4: Dark Mode
+══════════════════════════════════════ */
+[data-theme="dark"] {
+  --background: 240 10% 8%;
+  --foreground: 240 10% 90%;
+  --primary: 262 83% 65%;
+  --primary-foreground: 240 10% 8%;
+  --secondary: 240 8% 14%;
+  --secondary-foreground: 240 10% 80%;
+  --muted: 240 8% 14%;
+  --muted-foreground: 240 8% 55%;
+  --accent: 262 83% 65%;
+  --accent-foreground: 240 10% 8%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 240 8% 18%;
+  --input: 240 8% 18%;
+  --ring: 262 83% 65%;
+  --card: 240 8% 11%;
+  --card-foreground: 240 10% 88%;
+  --popover: 240 8% 11%;
+  --popover-foreground: 240 10% 88%;
+  --sidebar: 240 12% 6%;
+  --sidebar-foreground: 262 40% 75%;
+}
+
+/* ══════════════════════════════════════
+   THEME 5: Saffron Indian
+══════════════════════════════════════ */
+[data-theme="saffron"] {
+  --background: 40 50% 97%;
+  --foreground: 25 60% 8%;
+  --primary: 30 90% 40%;
+  --primary-foreground: 40 80% 96%;
+  --secondary: 40 30% 93%;
+  --secondary-foreground: 25 50% 15%;
+  --muted: 40 25% 93%;
+  --muted-foreground: 30 20% 45%;
+  --accent: 42 95% 48%;
+  --accent-foreground: 25 60% 8%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 40 25% 86%;
+  --input: 40 25% 86%;
+  --ring: 30 90% 40%;
+  --card: 0 0% 100%;
+  --card-foreground: 25 60% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 25 60% 8%;
+  --sidebar: 25 60% 8%;
+  --sidebar-foreground: 42 70% 72%;
+}
+
+/* ══════════════════════════════════════
+   THEME 6: Purple Gradient Upgrade
+══════════════════════════════════════ */
+[data-theme="purple-pro"] {
+  --background: 270 40% 98%;
+  --foreground: 270 60% 6%;
+  --primary: 270 80% 50%;
+  --primary-foreground: 270 40% 98%;
+  --secondary: 270 20% 94%;
+  --secondary-foreground: 270 50% 12%;
+  --muted: 270 15% 94%;
+  --muted-foreground: 270 10% 46%;
+  --accent: 290 70% 55%;
+  --accent-foreground: 270 40% 98%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 270 20% 89%;
+  --input: 270 20% 89%;
+  --ring: 270 80% 50%;
+  --card: 0 0% 100%;
+  --card-foreground: 270 60% 6%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 270 60% 6%;
+  --sidebar: 272 55% 10%;
+  --sidebar-foreground: 280 40% 78%;
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR COLORS per theme
+══════════════════════════════════════ */
+aside {
+  background-color: hsl(var(--sidebar));
+  color: hsl(var(--sidebar-foreground));
+}
+
+aside .text-primary {
+  color: hsl(var(--sidebar-foreground)) !important;
+}
+
+aside .text-muted-foreground {
+  color: hsl(var(--sidebar-foreground) / 0.6) !important;
+}
+
+aside nav a.text-muted-foreground:hover {
+  background-color: hsl(var(--sidebar-foreground) / 0.08) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+}
+
+/* Theme transition */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Hover effects */
+.hover-elevate {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.hover-elevate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.active-elevate-2:active {
+  transform: translateY(0px);
 }
 
 @keyframes marquee {
@@ -49,7 +215,7 @@
   display: inline-block;
   white-space: nowrap;
   animation: marquee 10s linear infinite;
-  padding-right: 4rem; /* Buffer space */
+  padding-right: 4rem;
 }
 
 .marquee-container {
@@ -99,5 +265,9 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+  @apply bg-muted-foreground/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
 }

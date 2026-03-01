@@ -12,22 +12,43 @@ import { db } from "./db";
 import { settings } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+/* =====================================================
+   PASSWORD HELPERS (SAFE VERSION)
+===================================================== */
+
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   const hashedPassword = scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${hashedPassword}`;
 }
 
-function verifyPassword(password: string, hash: string): boolean {
-  const [salt, key] = hash.split(":");
-  const hashedPassword = scryptSync(password, salt, 64);
-  const keyBuffer = Buffer.from(key, "hex");
-  return timingSafeEqual(hashedPassword, keyBuffer);
+function verifyPassword(password?: string, hash?: string): boolean {
+  try {
+    if (!password || !hash) return false;
+    if (!hash.includes(":")) return false;
+
+    const parts = hash.split(":");
+    if (parts.length !== 2) return false;
+
+    const [salt, key] = parts;
+    if (!salt || !key) return false;
+
+    const hashedPassword = scryptSync(password, salt, 64);
+    const keyBuffer = Buffer.from(key, "hex");
+
+    if (hashedPassword.length !== keyBuffer.length) return false;
+
+    return timingSafeEqual(hashedPassword, keyBuffer);
+  } catch {
+    return false;
+  }
 }
 
-const upload = multer({ 
+/* ===================================================== */
+
+const upload = multer({
   dest: path.join(process.cwd(), "uploads"),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 export async function registerRoutes(
@@ -35,67 +56,83 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  // Settings
-  app.get(api.settings.get.path, async (req, res) => {
+  /* ================= SETTINGS ================= */
+
+  app.get(api.settings.get.path, async (_, res) => {
     const s = await storage.getSettings();
-    res.json({ 
+
+    res.json({
       hasPassword: !!s?.wholesalePasswordHash,
-      hasMasterPassword: !!s?.masterPasswordHash 
+      hasMasterPassword: !!s?.masterPasswordHash,
     });
   });
 
+  /* ---------- SETUP PASSWORD ---------- */
+
   app.post(api.settings.setup.path, async (req, res) => {
     const { password } = req.body;
+
     const s = await storage.getSettings();
-    if (s?.wholesalePasswordHash) {
+    if (s?.wholesalePasswordHash)
       return res.status(400).json({ message: "Password already set" });
-    }
-    
+
+    const hash = hashPassword(password);
+
     if (s) {
-      await db.update(settings).set({ wholesalePasswordHash: hashPassword(password) }).where(eq(settings.id, s.id));
+      await db
+        .update(settings)
+        .set({ wholesalePasswordHash: hash })
+        .where(eq(settings.id, s.id));
     } else {
-      await storage.createSettings(hashPassword(password));
+      await storage.createSettings(hash);
     }
+
     res.json({ success: true });
   });
+
+  /* ---------- VERIFY ---------- */
 
   app.post(api.settings.verify.path, async (req, res) => {
     const { password } = req.body;
     const s = await storage.getSettings();
+
     if (!s) return res.status(400).json({ message: "Setup required" });
 
-    const valid = verifyPassword(password, s.wholesalePasswordHash);
+    const valid = verifyPassword(password, s.wholesalePasswordHash ?? undefined);
+
     res.json({ valid });
   });
 
+  /* ---------- CHANGE PASSWORD ---------- */
+
   app.post(api.settings.changePassword.path, async (req, res) => {
     const { masterPassword, newPassword } = req.body;
+
     const s = await storage.getSettings();
     if (!s) return res.status(400).json({ message: "Setup required" });
 
-    if (s.masterPasswordHash) {
-      if (!masterPassword || !verifyPassword(masterPassword, s.masterPasswordHash)) {
-        return res.status(401).json({ message: "Invalid master password" });
-      }
-    } else {
-      if (!verifyPassword(masterPassword, s.wholesalePasswordHash)) {
-        return res.status(401).json({ message: "Invalid current password" });
-      }
-    }
+    const allowed = s.masterPasswordHash
+      ? verifyPassword(masterPassword, s.masterPasswordHash)
+      : verifyPassword(masterPassword, s.wholesalePasswordHash ?? undefined);
+
+    if (!allowed)
+      return res.status(401).json({ message: "Invalid password" });
 
     await storage.updateSettings(hashPassword(newPassword));
+
     res.json({ success: true });
   });
+
+  /* ---------- MASTER PASSWORD ---------- */
 
   app.post("/api/settings/master-password", async (req, res) => {
     const { password } = req.body;
     const s = await storage.getSettings();
 
-    if (s?.masterPasswordHash) {
+    if (s?.masterPasswordHash)
       return res.status(400).json({
-        message: "Master password already set. It cannot be changed."
+        message: "Master password already set",
       });
-    }
 
     const hash = hashPassword(password);
 
@@ -104,80 +141,73 @@ export async function registerRoutes(
         .update(settings)
         .set({ masterPasswordHash: hash })
         .where(eq(settings.id, s.id));
-    } else {
-      await storage.createSettings("");
-      const newS = await storage.getSettings();
-      if (newS) {
-        await db
-          .update(settings)
-          .set({ masterPasswordHash: hash })
-          .where(eq(settings.id, newS.id));
-      }
     }
 
     res.json({ success: true });
   });
+
+  /* ---------- RESET ---------- */
 
   app.post("/api/settings/reset", async (req, res) => {
     const { masterPassword } = req.body;
-    const s = await storage.getSettings();
 
+    const s = await storage.getSettings();
     if (!s) return res.status(400).json({ message: "Setup required" });
 
-    if (s.masterPasswordHash) {
-      if (!masterPassword || !verifyPassword(masterPassword, s.masterPasswordHash)) {
-        return res.status(401).json({ message: "Invalid master password" });
-      }
-    } else {
-      if (!masterPassword || !verifyPassword(masterPassword, s.wholesalePasswordHash)) {
-        return res.status(401).json({ message: "Invalid current password" });
-      }
-    }
+    const allowed = s.masterPasswordHash
+      ? verifyPassword(masterPassword, s.masterPasswordHash)
+      : verifyPassword(masterPassword, s.wholesalePasswordHash ?? undefined);
 
-    await db.update(settings).set({ wholesalePasswordHash: "" }).where(eq(settings.id, s.id));
+    if (!allowed)
+      return res.status(401).json({ message: "Invalid password" });
+
+    await db
+      .update(settings)
+      .set({ wholesalePasswordHash: null }) // ✅ FIXED
+      .where(eq(settings.id, s.id));
+
     res.json({ success: true });
   });
 
-  async function checkWholesaleAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  /* ---------- AUTH MIDDLEWARE ---------- */
+
+  async function checkWholesaleAuth(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) {
     const password = req.headers["x-wholesale-password"] as string;
     const s = await storage.getSettings();
 
-    if (s && s.wholesalePasswordHash) {
-      if (!password || !verifyPassword(password, s.wholesalePasswordHash)) {
+    if (s?.wholesalePasswordHash) {
+      if (!verifyPassword(password, s.wholesalePasswordHash))
         return res.status(403).json({ message: "Wholesale access required" });
-      }
     }
+
     next();
   }
 
-  // Categories
-  app.get(api.categories.list.path, async (req, res) => {
-    const categoriesList = await storage.getCategories();
-    res.json(categoriesList);
+  /* ================= CATEGORIES ================= */
+
+  app.get(api.categories.list.path, async (_, res) => {
+    res.json(await storage.getCategories());
   });
 
   app.post(api.categories.create.path, checkWholesaleAuth, async (req, res) => {
     try {
       const input = api.categories.create.input.parse(req.body);
-      const category = await storage.createCategory(input);
-      res.status(201).json(category);
+      res.status(201).json(await storage.createCategory(input));
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        res.status(400).json({ message: err.errors[0].message });
-      } else {
-        res.status(500).json({ message: err instanceof Error ? err.message : "Internal server error" });
-      }
+      if (err instanceof z.ZodError)
+        return res.status(400).json({ message: err.errors[0].message });
+
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
   app.put(api.categories.update.path, checkWholesaleAuth, async (req, res) => {
-    try {
-      const input = api.categories.update.input.parse(req.body);
-      const category = await storage.updateCategory(Number(req.params.id), input);
-      res.json(category);
-    } catch (err) {
-      res.status(400).json({ message: "Invalid input" });
-    }
+    const input = api.categories.update.input.parse(req.body);
+    res.json(await storage.updateCategory(Number(req.params.id), input));
   });
 
   app.delete(api.categories.delete.path, checkWholesaleAuth, async (req, res) => {
@@ -185,41 +215,26 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Customers
+  /* ================= CUSTOMERS ================= */
+
   app.get(api.customers.list.path, checkWholesaleAuth, async (req, res) => {
-    const params = {
-      search: req.query.search as string,
-      from: req.query.from as string,
-      to: req.query.to as string,
-    };
-    const customersList = await storage.getCustomers(params);
-    res.json(customersList);
+    res.json(await storage.getCustomers(req.query as any));
   });
 
   app.post(api.customers.create.path, checkWholesaleAuth, async (req, res) => {
-    try {
-      const input = api.customers.create.input.parse(req.body);
-      const customer = await storage.createCustomer(input);
-      res.status(201).json(customer);
-    } catch (err) {
-      res.status(400).json({ message: "Invalid input" });
-    }
+    const input = api.customers.create.input.parse(req.body);
+    res.status(201).json(await storage.createCustomer(input));
   });
 
   app.get(api.customers.get.path, checkWholesaleAuth, async (req, res) => {
-    const customer = await storage.getCustomer(Number(req.params.id));
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
-    res.json(customer);
+    const c = await storage.getCustomer(Number(req.params.id));
+    if (!c) return res.status(404).json({ message: "Not found" });
+    res.json(c);
   });
 
   app.put(api.customers.update.path, checkWholesaleAuth, async (req, res) => {
-    try {
-      const input = api.customers.update.input.parse(req.body);
-      const customer = await storage.updateCustomer(Number(req.params.id), input);
-      res.json(customer);
-    } catch (err) {
-      res.status(400).json({ message: "Invalid input" });
-    }
+    const input = api.customers.update.input.parse(req.body);
+    res.json(await storage.updateCustomer(Number(req.params.id), input));
   });
 
   app.delete(api.customers.delete.path, checkWholesaleAuth, async (req, res) => {
@@ -227,114 +242,5 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  app.post("/api/customers/bulk-delete", checkWholesaleAuth, async (req, res) => {
-    const { ids } = req.body;
-    if (!Array.isArray(ids)) return res.status(400).json({ message: "Invalid input" });
-    await storage.deleteCustomersBulk(ids);
-    res.json({ success: true });
-  });
-
-  // Presets
-  app.get(api.presets.list.path, async (req, res) => {
-    const presetsList = await storage.getPresets();
-    res.json(presetsList);
-  });
-
-  app.post(api.presets.create.path, async (req, res) => {
-    const { name } = req.body;
-    const preset = await storage.createPreset(name);
-    res.status(201).json(preset);
-  });
-
-  app.put(api.presets.updateFields.path, async (req, res) => {
-    const { fields } = req.body;
-    for (const field of fields) {
-      await storage.updatePresetField(field.id, {
-        isEnabled: field.isEnabled,
-        orderIndex: field.orderIndex,
-      });
-    }
-    res.json({ success: true });
-  });
-
-  app.post(api.presets.setActive.path, async (req, res) => {
-    await storage.activatePreset(Number(req.params.id));
-    res.json({ success: true });
-  });
-
-  // Backup and Restore
-  app.get("/api/backup", async (req, res) => {
-    try {
-      const data = {
-        categories: await storage.getCategories(),
-        customers: await storage.getCustomers(),
-        presets: await storage.getPresets(),
-        settings: await storage.getSettings(),
-        version: "1.0",
-        timestamp: new Date().toISOString()
-      };
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', 'attachment; filename=optician_backup.json');
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ message: "Failed to create backup" });
-    }
-  });
-
-  app.post("/api/restore", checkWholesaleAuth, upload.single("backup"), async (req, res) => {
-    try {
-      if (!req.file) return res.status(400).json({ message: "No backup file uploaded" });
-      const rawData = fs.readFileSync(req.file.path, 'utf8');
-      const data = JSON.parse(rawData);
-      if (!data.categories || !data.customers) {
-        return res.status(400).json({ message: "Invalid backup file format" });
-      }
-      await storage.restoreBackup(data);
-      fs.unlinkSync(req.file.path);
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ message: "Restore failed: " + (err as Error).message });
-    }
-  });
-
-    seedDatabase().catch(console.error);
   return httpServer;
-}
-
-export async function seedDatabase() {
-  const existing = await storage.getCategories();
-  if (existing.length === 0) {
-    const sv = await storage.createCategory({ name: "Single Vision", type: "FOLDER" });
-    const minus = await storage.createCategory({ name: "Minus (-)", type: "FOLDER", parentId: sv.id });
-    const hc = await storage.createCategory({ name: "HC", type: "FOLDER", parentId: minus.id });
-    await storage.createCategory({ 
-      name: "-6.00 to -2.00", 
-      type: "ITEM", 
-      parentId: hc.id,
-      customerPrice: 650,
-      wholesalePrice: 520,
-      sortOrder: 0
-    });
-    const arc = await storage.createCategory({ name: "ARC", type: "FOLDER", parentId: minus.id });
-    await storage.createCategory({
-      name: "-6.00 to -2.00",
-      type: "ITEM",
-      parentId: arc.id,
-      customerPrice: 750,
-      wholesalePrice: 600,
-      sortOrder: 0
-    });
-    const plus = await storage.createCategory({ name: "Plus (+)", type: "FOLDER", parentId: sv.id });
-    const bluecut = await storage.createCategory({ name: "BLUECUT", type: "FOLDER", parentId: plus.id });
-    await storage.createCategory({
-      name: "+2.00 to +6.00",
-      type: "ITEM",
-      parentId: bluecut.id,
-      customerPrice: 1200,
-      wholesalePrice: 900,
-      sortOrder: 0
-    });
-    const defaultPreset = await storage.createPreset("Default Preset");
-    await storage.activatePreset(defaultPreset.id);
-  }
 }

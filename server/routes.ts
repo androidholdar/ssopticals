@@ -271,29 +271,37 @@ export async function registerRoutes(
   });
 
   // Backup and Restore
-  app.get("/api/backup", async (req, res) => {
+  app.get("/api/backup", async (req, res, next) => {
     try {
-      const cats = await storage.getCategories();
-      const custs = await storage.getCustomers();
-      const pres = await storage.getPresets();
-      const sets = await storage.getSettings();
+      const [categories, customers, presets, settings] = await Promise.all([
+        storage.getCategories(),
+        storage.getCustomers(),
+        storage.getPresets(),
+        storage.getSettings()
+      ]);
 
       const data = {
-        categories: cats,
-        customers: custs,
-        presets: pres,
-        settings: sets,
+        categories,
+        customers,
+        presets,
+        settings,
         version: "1.1",
         timestamp: new Date().toISOString()
       };
 
       const fileName = `optician_backup_${new Date().toISOString().split('T')[0]}.json`;
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-      res.json(data);
+
+      // Ensure headers are set before any potential error occurs
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+      return res.send(JSON.stringify(data, null, 2));
     } catch (err) {
       console.error("Backup failed:", err);
-      res.status(500).json({ message: "Failed to create backup: " + (err as Error).message });
+      // In case of error, we should NOT send headers for file download
+      res.removeHeader('Content-Disposition');
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ message: "Failed to create backup: " + (err as Error).message });
     }
   });
 
@@ -318,8 +326,9 @@ export async function registerRoutes(
 }
 
 export async function seedDatabase() {
-  const existing = await storage.getCategories();
-  if (existing.length === 0) {
+  // Seed Categories if empty
+  const existingCats = await storage.getCategories();
+  if (existingCats.length === 0) {
     const sv = await storage.createCategory({ name: "Single Vision", type: "FOLDER" });
     const minus = await storage.createCategory({ name: "Minus (-)", type: "FOLDER", parentId: sv.id });
     const hc = await storage.createCategory({ name: "HC", type: "FOLDER", parentId: minus.id });
@@ -350,6 +359,11 @@ export async function seedDatabase() {
       wholesalePrice: 900,
       sortOrder: 0
     });
+  }
+
+  // Seed Form Presets if empty - this fixes the "empty customer form" issue
+  const existingPresets = await storage.getPresets();
+  if (existingPresets.length === 0) {
     const defaultPreset = await storage.createPreset("Default Preset");
     await storage.activatePreset(defaultPreset.id);
   }

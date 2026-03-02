@@ -16,7 +16,7 @@ import {
   type UpdateCustomerRequest,
   type CreatePresetRequest,
 } from "@shared/schema";
-import { eq, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lte, inArray, getTableColumns } from "drizzle-orm";
 
 export interface IStorage {
   // Settings
@@ -233,7 +233,7 @@ export class DatabaseStorage implements IStorage {
   async restoreBackup(data: any): Promise<void> {
     // Utility to filter keys based on table schema
     const filterData = (table: any, item: any) => {
-      const allowedKeys = Object.keys(table);
+      const allowedKeys = Object.keys(getTableColumns(table));
       const filtered: any = {};
       for (const key of allowedKeys) {
         if (key in item) {
@@ -241,6 +241,13 @@ export class DatabaseStorage implements IStorage {
         }
       }
       return filtered;
+    };
+
+    // Helper for safe date conversion from backup
+    const toSafeDate = (val: any) => {
+      if (!val) return new Date();
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? new Date() : d;
     };
 
     await db.transaction(async (tx) => {
@@ -254,9 +261,15 @@ export class DatabaseStorage implements IStorage {
 
         // Restore Settings
         if (data.settings) {
-          const filtered = filterData(settings, data.settings);
-          if (Object.keys(filtered).length > 0) {
-            await tx.insert(settings).values(filtered);
+          // Handle both array (legacy) and object formats
+          const settingsItem = Array.isArray(data.settings) ? data.settings[0] : data.settings;
+          if (settingsItem) {
+            const { updatedAt, ...rest } = settingsItem;
+            const filtered = filterData(settings, rest);
+            await tx.insert(settings).values({
+              ...filtered,
+              updatedAt: toSafeDate(updatedAt)
+            });
           }
         }
 
@@ -267,7 +280,7 @@ export class DatabaseStorage implements IStorage {
             const filtered = filterData(categories, rest);
             await tx.insert(categories).values({
               ...filtered,
-              updatedAt: updatedAt ? new Date(updatedAt) : new Date()
+              updatedAt: toSafeDate(updatedAt)
             });
           }
         }
@@ -279,7 +292,7 @@ export class DatabaseStorage implements IStorage {
             const filtered = filterData(customers, rest);
             await tx.insert(customers).values({
               ...filtered,
-              createdAt: createdAt ? new Date(createdAt) : new Date()
+              createdAt: toSafeDate(createdAt)
             });
           }
         }
@@ -305,22 +318,24 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Reset sequences for all tables since we manually inserted IDs
-        // We use a safer SQL query that handles potential missing sequences or custom names
         const tableNames = ['categories', 'customers', 'form_presets', 'form_preset_fields', 'settings'];
         for (const name of tableNames) {
           await tx.execute(sql.raw(`
-            SELECT setval(
-              pg_get_serial_sequence('${name}', 'id'),
-              (SELECT COALESCE(MAX(id), 0) + 1 FROM ${name}),
-              false
-            )
+            DO \$\$
+            DECLARE
+                seq_name TEXT;
+            BEGIN
+                SELECT pg_get_serial_sequence('${name}', 'id') INTO seq_name;
+                IF seq_name IS NOT NULL THEN
+                    EXECUTE format('SELECT setval(%L, (SELECT COALESCE(MAX(id), 0) + 1 FROM ${name}), false)', seq_name);
+                END IF;
+            END \$\$;
           `));
         }
 
         // Final check: if no presets exist after restore, seed the default one
         const finalPresets = await tx.select().from(formPresets);
         if (finalPresets.length === 0) {
-          // Manual seed logic inside transaction
           const [preset] = await tx.insert(formPresets).values({ name: "Default Preset", isActive: true }).returning();
           const defaultFields = [
             { key: "name", label: "Full Name" },

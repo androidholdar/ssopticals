@@ -80,25 +80,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleBackup = async () => {
-    try {
-      const response = await fetch("/api/backup");
-      if (!response.ok) throw new Error("Failed to generate backup");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `optician_backup_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({ title: "Backup Successful", description: "Your backup file has been downloaded." });
-    } catch (error: any) {
-      toast({ title: "Backup Failed", description: error.message, variant: "destructive" });
-    }
+  const handleBackup = () => {
+    window.location.href = "/api/backup";
   };
 
   const handleRestoreClick = () => {

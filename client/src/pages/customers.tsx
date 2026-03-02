@@ -939,6 +939,7 @@ function CustomerCard({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
+  // Cancel long-press if the window is scrolled
   useEffect(() => {
     const handleScroll = () => {
       if (longPressTimer.current) {
@@ -954,6 +955,7 @@ function CustomerCard({
       ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
       : { x: e.clientX, y: e.clientY };
     touchStartRef.current = coords;
+
     longPressTimer.current = setTimeout(onLongPress, 500);
   };
 
@@ -962,8 +964,10 @@ function CustomerCard({
     const coords = 'touches' in e
       ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
       : { x: e.clientX, y: e.clientY };
+
     const dx = Math.abs(coords.x - touchStartRef.current.x);
     const dy = Math.abs(coords.y - touchStartRef.current.y);
+
     if (dx > 10 || dy > 10) {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
     }
@@ -1020,6 +1024,7 @@ function CustomerCard({
             </div>
           </div>
         </div>
+
       </CardContent>
     </Card>
   );

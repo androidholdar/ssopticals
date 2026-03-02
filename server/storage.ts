@@ -293,7 +293,7 @@ export class DatabaseStorage implements IStorage {
 
             if (fields && Array.isArray(fields)) {
               for (const field of fields) {
-                const { presetId: _, ...fieldRest } = field;
+                const { presetId: _, id: __, ...fieldRest } = field;
                 const filteredField = filterData(formPresetFields, fieldRest);
                 await tx.insert(formPresetFields).values({
                   ...filteredField,
@@ -315,6 +315,32 @@ export class DatabaseStorage implements IStorage {
               false
             )
           `));
+        }
+
+        // Final check: if no presets exist after restore, seed the default one
+        const finalPresets = await tx.select().from(formPresets);
+        if (finalPresets.length === 0) {
+          // Manual seed logic inside transaction
+          const [preset] = await tx.insert(formPresets).values({ name: "Default Preset", isActive: true }).returning();
+          const defaultFields = [
+            { key: "name", label: "Full Name" },
+            { key: "age", label: "Age" },
+            { key: "address", label: "Address" },
+            { key: "mobile", label: "Mobile Number" },
+            { key: "newPower", label: "New Power" },
+            { key: "oldPower", label: "Old Power" },
+            { key: "notes", label: "Notes" },
+          ];
+          let index = 0;
+          for (const f of defaultFields) {
+            await tx.insert(formPresetFields).values({
+              presetId: preset.id,
+              fieldKey: f.key,
+              label: f.label,
+              isEnabled: true,
+              orderIndex: index++,
+            });
+          }
         }
       } catch (err: any) {
         console.error("Critical error during restoration:", err);

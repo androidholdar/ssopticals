@@ -1,4 +1,5 @@
 import { useSettings, useSetupPassword, useChangePassword, useVerifyPassword, useSetupMasterPassword } from "@/hooks/use-settings";
+import { useWholesale } from "@/hooks/use-wholesale";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function SettingsPage() {
   const { data: settings } = useSettings();
+  const { wholesalePassword } = useWholesale();
   const setupPassword = useSetupPassword();
   const changePassword = useChangePassword();
   const setupMasterPassword = useSetupMasterPassword();
@@ -99,6 +101,9 @@ export default function SettingsPage() {
     try {
       const response = await fetch("/api/restore", {
         method: "POST",
+        headers: {
+          "X-Wholesale-Password": wholesalePassword || "",
+        },
         body: formData,
       });
 

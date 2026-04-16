@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
 import { type CreateCustomerRequest, type UpdateCustomerRequest } from "@shared/schema";
-import { useWholesale } from "./use-wholesale";
+import { supabase } from "@/lib/supabase";
 
 type CustomerFilters = {
   search?: string;
@@ -10,41 +9,46 @@ type CustomerFilters = {
 };
 
 export function useCustomers(filters?: CustomerFilters, options?: { enabled?: boolean }) {
-  const queryKey = [api.customers.list.path, filters];
-  const { wholesalePassword } = useWholesale();
+  const queryKey = ["customers", filters];
   return useQuery({
     queryKey,
     ...options,
     queryFn: async () => {
-      const url = new URL(window.location.origin + api.customers.list.path);
-      if (filters?.search) url.searchParams.set("search", filters.search);
-      if (filters?.from) url.searchParams.set("from", filters.from);
-      if (filters?.to) url.searchParams.set("to", filters.to);
+      let query = supabase
+        .from('customers')
+        .select('*')
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      const res = await fetch(url.toString(), {
-        headers: {
-          "X-Wholesale-Password": wholesalePassword || "",
-        }
-      });
-      if (!res.ok) throw new Error("Failed to fetch customers");
-      return api.customers.list.responses[200].parse(await res.json());
+      if (filters?.search) {
+        query = query.or(`name.ilike.%${filters.search}%,mobile.ilike.%${filters.search}%,address.ilike.%${filters.search}%`);
+      }
+      if (filters?.from) {
+        query = query.gte('date', filters.from);
+      }
+      if (filters?.to) {
+        query = query.lte('date', filters.to);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
     },
   });
 }
 
 export function useCustomer(id: number) {
-  const { wholesalePassword } = useWholesale();
   return useQuery({
-    queryKey: [api.customers.get.path, id],
+    queryKey: ["customer", id],
     queryFn: async () => {
-      const url = buildUrl(api.customers.get.path, { id });
-      const res = await fetch(url, {
-        headers: {
-          "X-Wholesale-Password": wholesalePassword || "",
-        }
-      });
-      if (!res.ok) throw new Error("Failed to fetch customer");
-      return api.customers.get.responses[200].parse(await res.json());
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     enabled: !!id,
   });
@@ -52,97 +56,118 @@ export function useCustomer(id: number) {
 
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async (data: CreateCustomerRequest) => {
-      const validated = api.customers.create.input.parse(data);
-      const res = await fetch(api.customers.create.path, {
-        method: api.customers.create.method,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Wholesale-Password": wholesalePassword || "",
-        },
-        body: JSON.stringify(validated),
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to create customer");
-      }
-      return api.customers.create.responses[201].parse(await res.json());
+      // Mapping to snake_case for Supabase
+      const dbData = {
+        date: data.date,
+        name: data.name,
+        age: data.age,
+        address: data.address,
+        mobile: data.mobile,
+        new_power_right_sph: data.newPowerRightSph,
+        new_power_right_cyl: data.newPowerRightCyl,
+        new_power_right_axis: data.newPowerRightAxis,
+        new_power_right_add: data.newPowerRightAdd,
+        new_power_left_sph: data.newPowerLeftSph,
+        new_power_left_cyl: data.newPowerLeftCyl,
+        new_power_left_axis: data.newPowerLeftAxis,
+        new_power_left_add: data.newPowerLeftAdd,
+        old_power_right_sph: data.oldPowerRightSph,
+        old_power_right_cyl: data.oldPowerRightCyl,
+        old_power_right_axis: data.oldPowerRightAxis,
+        old_power_right_add: data.oldPowerRightAdd,
+        old_power_left_sph: data.oldPowerLeftSph,
+        old_power_left_cyl: data.oldPowerLeftCyl,
+        old_power_left_axis: data.oldPowerLeftAxis,
+        old_power_left_add: data.oldPowerLeftAdd,
+        notes: data.notes
+      };
+
+      const { data: result, error } = await supabase
+        .from('customers')
+        .insert([dbData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
   });
 }
 
 export function useBulkDeleteCustomers() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async (ids: number[]) => {
-      const res = await fetch("/api/customers/bulk-delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Wholesale-Password": wholesalePassword || "",
-        },
-        body: JSON.stringify({ ids }),
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to delete customers");
-      }
-      return await res.json();
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
   });
 }
 
 export function useUpdateCustomer() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & UpdateCustomerRequest) => {
-      const validated = api.customers.update.input.parse(updates);
-      const url = buildUrl(api.customers.update.path, { id });
-      const res = await fetch(url, {
-        method: api.customers.update.method,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Wholesale-Password": wholesalePassword || "",
-        },
-        body: JSON.stringify(validated),
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to update customer");
+      const dbUpdates: any = {};
+      // Map only provided updates
+      const mapping: any = {
+        date: 'date', name: 'name', age: 'age', address: 'address', mobile: 'mobile',
+        newPowerRightSph: 'new_power_right_sph', newPowerRightCyl: 'new_power_right_cyl',
+        newPowerRightAxis: 'new_power_right_axis', newPowerRightAdd: 'new_power_right_add',
+        newPowerLeftSph: 'new_power_left_sph', newPowerLeftCyl: 'new_power_left_cyl',
+        newPowerLeftAxis: 'new_power_left_axis', newPowerLeftAdd: 'new_power_left_add',
+        oldPowerRightSph: 'old_power_right_sph', oldPowerRightCyl: 'old_power_right_cyl',
+        oldPowerRightAxis: 'old_power_right_axis', oldPowerRightAdd: 'old_power_right_add',
+        oldPowerLeftSph: 'old_power_left_sph', oldPowerLeftCyl: 'old_power_left_cyl',
+        oldPowerLeftAxis: 'old_power_left_axis', oldPowerLeftAdd: 'old_power_left_add',
+        notes: 'notes'
+      };
+
+      for (const [key, dbKey] of Object.entries(mapping)) {
+        if ((updates as any)[key] !== undefined) {
+          dbUpdates[dbKey as string] = (updates as any)[key];
+        }
       }
-      return api.customers.update.responses[200].parse(await res.json());
+
+      const { data: result, error } = await supabase
+        .from('customers')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
   });
 }
 
 export function useDeleteCustomer() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const url = buildUrl(api.customers.delete.path, { id });
-      const res = await fetch(url, {
-        method: api.customers.delete.method,
-        headers: {
-          "X-Wholesale-Password": wholesalePassword || "",
-        }
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to delete customer");
-      }
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.customers.list.path] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
   });
 }

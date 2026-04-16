@@ -1,15 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateCategoryRequest, type UpdateCategoryRequest } from "@shared/routes";
-import { useWholesale } from "./use-wholesale";
+import { type CreateCategoryRequest, type UpdateCategoryRequest } from "@shared/routes";
+import { supabase } from "@/lib/supabase";
 
 export function useCategories() {
   return useQuery({
-    queryKey: [api.categories.list.path],
+    queryKey: ["categories"],
     queryFn: async () => {
-      const res = await fetch(api.categories.list.path);
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = await res.json();
-      console.log("Fetched categories:", data);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) throw error;
       return data;
     },
   });
@@ -17,73 +20,71 @@ export function useCategories() {
 
 export function useCreateCategory() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async (data: CreateCategoryRequest) => {
-      const validated = api.categories.create.input.parse(data);
-      const res = await fetch(api.categories.create.path, {
-        method: api.categories.create.method,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Wholesale-Password": wholesalePassword || "",
-        },
-        body: JSON.stringify(validated),
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to create category");
-      }
-      return api.categories.create.responses[201].parse(await res.json());
+      // Mapping JS camelCase to DB snake_case for Supabase SDK
+      const dbData = {
+        name: data.name,
+        type: data.type,
+        parent_id: data.parentId,
+        customer_price: data.customerPrice,
+        wholesale_price: data.wholesalePrice,
+        sort_order: data.sortOrder
+      };
+
+      const { data: result, error } = await supabase
+        .from('categories')
+        .insert([dbData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.categories.list.path] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 }
 
 export function useUpdateCategory() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & UpdateCategoryRequest) => {
-      const validated = api.categories.update.input.parse(updates);
-      const url = buildUrl(api.categories.update.path, { id });
-      const res = await fetch(url, {
-        method: api.categories.update.method,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Wholesale-Password": wholesalePassword || "",
-        },
-        body: JSON.stringify(validated),
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to update category");
-      }
-      return api.categories.update.responses[200].parse(await res.json());
+      const dbUpdates: any = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.type !== undefined) dbUpdates.type = updates.type;
+      if (updates.parentId !== undefined) dbUpdates.parent_id = updates.parentId;
+      if (updates.customerPrice !== undefined) dbUpdates.customer_price = updates.customerPrice;
+      if (updates.wholesalePrice !== undefined) dbUpdates.wholesale_price = updates.wholesalePrice;
+      if (updates.sortOrder !== undefined) dbUpdates.sort_order = updates.sortOrder;
+
+      const { data: result, error } = await supabase
+        .from('categories')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.categories.list.path] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 }
 
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
-  const { wholesalePassword } = useWholesale();
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const url = buildUrl(api.categories.delete.path, { id });
-      const res = await fetch(url, {
-        method: api.categories.delete.method,
-        headers: {
-          "X-Wholesale-Password": wholesalePassword || "",
-        }
-      });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied: App is locked.");
-        throw new Error("Failed to delete category");
-      }
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.categories.list.path] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 }

@@ -8,13 +8,14 @@ export function useSettings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('settings')
-        .select('wholesale_password_hash, master_password_hash')
+        .select('id, wholesale_password_hash, master_password_hash')
         .limit(1)
         .maybeSingle();
 
       if (error) throw error;
 
       return {
+        id: data?.id,
         hasPassword: !!data?.wholesale_password_hash,
         hasMasterPassword: !!data?.master_password_hash
       };
@@ -28,7 +29,23 @@ export function useSetupPassword() {
     mutationFn: async (data: SetPasswordRequest) => {
       const { error } = await supabase
         .from('settings')
-        .insert([{ wholesale_password_hash: data.password }]);
+        .upsert([{ id: 1, wholesale_password_hash: data.password }]);
+
+      if (error) throw error;
+      return { success: true };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
+  });
+}
+
+export function useResetSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('settings')
+        .update({ wholesale_password_hash: "" })
+        .eq('id', 1);
 
       if (error) throw error;
       return { success: true };
@@ -56,8 +73,7 @@ export function useChangePassword() {
       // In a real app, master password check should happen in an RPC for security
       const { error } = await supabase
         .from('settings')
-        .update({ wholesale_password_hash: data.newPassword })
-        .limit(1);
+        .upsert([{ id: 1, wholesale_password_hash: data.newPassword }]);
 
       if (error) throw error;
       return { success: true };
@@ -72,8 +88,7 @@ export function useSetupMasterPassword() {
     mutationFn: async (data: { password: string }) => {
       const { error } = await supabase
         .from('settings')
-        .update({ master_password_hash: data.password })
-        .limit(1);
+        .upsert([{ id: 1, master_password_hash: data.password }]);
 
       if (error) throw error;
       return { success: true };

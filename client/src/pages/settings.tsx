@@ -1,4 +1,4 @@
-import { useSettings, useSetupPassword, useChangePassword, useVerifyPassword, useSetupMasterPassword } from "@/hooks/use-settings";
+import { useSettings, useSetupPassword, useChangePassword, useVerifyPassword, useSetupMasterPassword, useResetSettings } from "@/hooks/use-settings";
 import { useWholesale } from "@/hooks/use-wholesale";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, ShieldCheck, Download, Upload, Database } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { format } from "date-fns";
 
 export default function SettingsPage() {
   const { data: settings } = useSettings();
@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const setupPassword = useSetupPassword();
   const changePassword = useChangePassword();
   const setupMasterPassword = useSetupMasterPassword();
+  const resetSettings = useResetSettings();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -74,16 +75,57 @@ export default function SettingsPage() {
     if (masterPass === null) return;
 
     try {
-      await apiRequest("POST", "/api/settings/reset", { masterPassword: masterPass });
+      const { supabase } = await import("@/lib/supabase");
+
+      // Verify password locally for simplicity in static site
+      const { data: isValid } = await supabase.rpc('verify_wholesale_password', {
+        input_password: masterPass,
+        is_master: settings?.hasMasterPassword
+      });
+
+      if (!isValid) {
+        throw new Error("Invalid master/current password");
+      }
+
+      await resetSettings.mutateAsync();
       toast({ title: "Password Reset", description: "Wholesale password has been cleared." });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
-  const handleBackup = () => {
-    window.location.href = "/api/backup";
+  const handleBackup = async () => {
+    try {
+      const { supabase } = await import("@/lib/supabase");
+
+      const { data: categories } = await supabase.from('categories').select('*');
+      const { data: customers } = await supabase.from('customers').select('*');
+      const { data: presets } = await supabase.from('form_presets').select('*');
+      const { data: fields } = await supabase.from('form_preset_fields').select('*');
+
+      const backupData = {
+        categories,
+        customers,
+        form_presets: presets,
+        form_preset_fields: fields,
+        version: "2.0",
+        timestamp: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `opticals_backup_${format(new Date(), 'yyyyMMdd_HHmm')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Backup Successful", description: "Your data has been downloaded." });
+    } catch (error: any) {
+      toast({ title: "Backup Failed", description: error.message, variant: "destructive" });
+    }
   };
 
   const handleRestoreClick = () => {
@@ -94,29 +136,39 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("backup", file);
-
     setIsRestoring(true);
     try {
-      const response = await fetch("/api/restore", {
-        method: "POST",
-        headers: {
-          "X-Wholesale-Password": wholesalePassword || "",
-        },
-        body: formData,
-      });
+      const text = await file.text();
+      const data = JSON.parse(text);
 
-      if (response.ok) {
-        toast({ title: "Restore Successful", description: "Application data has been restored. Refreshing..." });
-        // Invalidate all queries and force a reload to ensure data is updated
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      } else {
-        const err = await response.json();
-        throw new Error(err.message || "Restore failed");
+      const { supabase } = await import("@/lib/supabase");
+
+      // 1. Clear existing data
+      // We use a range delete or a filter that matches everything since RLS allows it
+      await supabase.from('form_preset_fields').delete().filter('id', 'gt', 0);
+      await supabase.from('form_presets').delete().filter('id', 'gt', 0);
+      await supabase.from('categories').delete().filter('id', 'gt', 0);
+      await supabase.from('customers').delete().filter('id', 'gt', 0);
+
+      toast({ title: "Restore in Progress", description: "Data cleared. Inserting new records..." });
+
+      if (data.categories?.length > 0) {
+        await supabase.from('categories').insert(data.categories);
       }
+      if (data.customers?.length > 0) {
+        await supabase.from('customers').insert(data.customers);
+      }
+      if (data.form_presets?.length > 0) {
+        await supabase.from('form_presets').insert(data.form_presets);
+      }
+      if (data.form_preset_fields?.length > 0) {
+        await supabase.from('form_preset_fields').insert(data.form_preset_fields);
+      }
+
+      toast({ title: "Restore Successful", description: "Application data has been restored. Refreshing..." });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error: any) {
       toast({ title: "Restore Failed", description: error.message, variant: "destructive" });
     } finally {

@@ -80,12 +80,19 @@ CREATE POLICY "Enable all for fields" ON form_preset_fields FOR ALL USING (true)
 CREATE POLICY "Enable all for settings" ON settings FOR ALL USING (true);
 
 -- 4. Password Verification Function (RPC)
-CREATE OR REPLACE FUNCTION verify_wholesale_password(input_password TEXT)
+CREATE OR REPLACE FUNCTION verify_wholesale_password(input_password TEXT, is_master BOOLEAN DEFAULT FALSE)
 RETURNS BOOLEAN AS $$
 DECLARE
     stored_password TEXT;
 BEGIN
-    SELECT wholesale_password_hash INTO stored_password FROM settings LIMIT 1;
+    IF is_master THEN
+        SELECT master_password_hash INTO stored_password FROM settings WHERE id = 1;
+    ELSE
+        SELECT wholesale_password_hash INTO stored_password FROM settings WHERE id = 1;
+    END IF;
+
+    -- If no password set, treat as invalid (or valid if that's the logic)
+    -- In this app, we want to return true for empty string if that's how it's initialized
     RETURN stored_password = input_password;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

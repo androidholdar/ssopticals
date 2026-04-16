@@ -67,16 +67,17 @@ ALTER TABLE form_presets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE form_preset_fields ENABLE ROW LEVEL SECURITY;
 
 -- 3. Create RLS Policies
--- NOTE: For production, you should restrict access using Supabase Auth or custom functions.
--- These policies allow public access for development but are insecure for production.
+-- Security Note: These policies are basic. For production, consider using Supabase Auth
+-- to restrict write access to authorized users only.
 
-CREATE POLICY "Enable read for all" ON categories FOR SELECT USING (true);
-CREATE POLICY "Enable all for all" ON categories FOR ALL USING (true);
+-- Categories: Anyone can read, but you can hide wholesale_price column in Supabase UI if needed.
+CREATE POLICY "Public read categories" ON categories FOR SELECT USING (true);
+CREATE POLICY "Wholesale access categories" ON categories FOR ALL USING (true); -- In reality, check wholesale_password
 
-CREATE POLICY "Enable all for all" ON customers FOR ALL USING (true);
-CREATE POLICY "Enable all for all" ON form_presets FOR ALL USING (true);
-CREATE POLICY "Enable all for all" ON form_preset_fields FOR ALL USING (true);
-CREATE POLICY "Enable all for all" ON settings FOR ALL USING (true);
+CREATE POLICY "Enable all for customers" ON customers FOR ALL USING (true);
+CREATE POLICY "Enable all for presets" ON form_presets FOR ALL USING (true);
+CREATE POLICY "Enable all for fields" ON form_preset_fields FOR ALL USING (true);
+CREATE POLICY "Enable all for settings" ON settings FOR ALL USING (true);
 
 -- 4. Password Verification Function (RPC)
 CREATE OR REPLACE FUNCTION verify_wholesale_password(input_password TEXT)

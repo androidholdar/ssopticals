@@ -2,6 +2,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type CreatePresetRequest } from "@shared/routes";
 import { supabase } from "@/lib/supabase";
 
+// Helper to map DB snake_case to UI camelCase
+const mapPreset = (p: any, fields: any[]) => ({
+  id: p.id,
+  name: p.name,
+  isActive: p.is_active,
+  fields: fields.filter(f => f.preset_id === p.id).map(f => ({
+    id: f.id,
+    presetId: f.preset_id,
+    fieldKey: f.field_key,
+    label: f.label,
+    isEnabled: f.is_enabled,
+    orderIndex: f.order_index
+  }))
+});
+
 export function usePresets() {
   return useQuery({
     queryKey: ["presets"],
@@ -19,16 +34,7 @@ export function usePresets() {
 
       if (fieldsError) throw fieldsError;
 
-      return presets.map(p => ({
-        ...p,
-        fields: fields.filter(f => f.preset_id === p.id).map(f => ({
-          ...f,
-          presetId: f.preset_id,
-          fieldKey: f.field_key,
-          isEnabled: f.is_enabled,
-          orderIndex: f.order_index
-        }))
-      }));
+      return (presets || []).map(p => mapPreset(p, fields || []));
     },
   });
 }
@@ -62,13 +68,14 @@ export function useCreatePreset() {
         order_index: index,
       }));
 
-      const { error: fieldsError } = await supabase
+      const { data: insertedFields, error: fieldsError } = await supabase
         .from('form_preset_fields')
-        .insert(fieldsToInsert);
+        .insert(fieldsToInsert)
+        .select();
 
       if (fieldsError) throw fieldsError;
 
-      return preset;
+      return mapPreset(preset, insertedFields || []);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["presets"] }),
   });

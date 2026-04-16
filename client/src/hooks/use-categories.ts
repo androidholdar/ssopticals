@@ -2,6 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type CreateCategoryRequest, type UpdateCategoryRequest } from "@shared/routes";
 import { supabase } from "@/lib/supabase";
 
+// Helper to map DB snake_case to UI camelCase
+const mapCategory = (cat: any) => ({
+  id: cat.id,
+  parentId: cat.parent_id,
+  name: cat.name,
+  type: cat.type,
+  customerPrice: cat.customer_price,
+  wholesalePrice: cat.wholesale_price,
+  sortOrder: cat.sort_order,
+  updatedAt: cat.updated_at
+});
+
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
@@ -13,7 +25,7 @@ export function useCategories() {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return (data || []).map(mapCategory);
     },
   });
 }
@@ -23,7 +35,6 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async (data: CreateCategoryRequest) => {
-      // Mapping JS camelCase to DB snake_case for Supabase SDK
       const dbData = {
         name: data.name,
         type: data.type,
@@ -40,7 +51,7 @@ export function useCreateCategory() {
         .single();
 
       if (error) throw error;
-      return result;
+      return mapCategory(result);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
@@ -67,7 +78,7 @@ export function useUpdateCategory() {
         .single();
 
       if (error) throw error;
-      return result;
+      return mapCategory(result);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });

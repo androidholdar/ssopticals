@@ -20,6 +20,11 @@ Architecture change hone ki wajah se aapko Supabase mein 2 kaam karne honge:
 
 ---
 
+### Render "Web Service" vs "Static Site"
+
+- Agar aap Render par **Static Site** (Free) tier use kar rahe hain, toh sirf build command (`npm install; npm run build`) kafi hai.
+- Agar aap **Web Service** use kar rahe hain, toh maine `"start"` script add kar di hai jo app ko server par serve karegi.
+
 ### Step-by-Step Guide
 
 1.  **Supabase Dashboard** jayein.

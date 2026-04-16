@@ -8,6 +8,34 @@ type CustomerFilters = {
   to?: string;
 };
 
+// Helper to map DB snake_case to UI camelCase
+const mapCustomer = (cust: any) => ({
+  id: cust.id,
+  date: cust.date,
+  name: cust.name,
+  age: cust.age,
+  address: cust.address,
+  mobile: cust.mobile,
+  newPowerRightSph: cust.new_power_right_sph,
+  newPowerRightCyl: cust.new_power_right_cyl,
+  newPowerRightAxis: cust.new_power_right_axis,
+  newPowerRightAdd: cust.new_power_right_add,
+  newPowerLeftSph: cust.new_power_left_sph,
+  newPowerLeftCyl: cust.new_power_left_cyl,
+  newPowerLeftAxis: cust.new_power_left_axis,
+  newPowerLeftAdd: cust.new_power_left_add,
+  oldPowerRightSph: cust.old_power_right_sph,
+  oldPowerRightCyl: cust.old_power_right_cyl,
+  oldPowerRightAxis: cust.old_power_right_axis,
+  oldPowerRightAdd: cust.old_power_right_add,
+  oldPowerLeftSph: cust.old_power_left_sph,
+  oldPowerLeftCyl: cust.old_power_left_cyl,
+  oldPowerLeftAxis: cust.old_power_left_axis,
+  oldPowerLeftAdd: cust.old_power_left_add,
+  notes: cust.notes,
+  createdAt: cust.created_at
+});
+
 export function useCustomers(filters?: CustomerFilters, options?: { enabled?: boolean }) {
   const queryKey = ["customers", filters];
   return useQuery({
@@ -32,7 +60,7 @@ export function useCustomers(filters?: CustomerFilters, options?: { enabled?: bo
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data || []).map(mapCustomer);
     },
   });
 }
@@ -48,7 +76,7 @@ export function useCustomer(id: number) {
         .single();
 
       if (error) throw error;
-      return data;
+      return mapCustomer(data);
     },
     enabled: !!id,
   });
@@ -59,7 +87,6 @@ export function useCreateCustomer() {
 
   return useMutation({
     mutationFn: async (data: CreateCustomerRequest) => {
-      // Mapping to snake_case for Supabase
       const dbData = {
         date: data.date,
         name: data.name,
@@ -92,7 +119,7 @@ export function useCreateCustomer() {
         .single();
 
       if (error) throw error;
-      return result;
+      return mapCustomer(result);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
   });
@@ -120,7 +147,6 @@ export function useUpdateCustomer() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & UpdateCustomerRequest) => {
       const dbUpdates: any = {};
-      // Map only provided updates
       const mapping: any = {
         date: 'date', name: 'name', age: 'age', address: 'address', mobile: 'mobile',
         newPowerRightSph: 'new_power_right_sph', newPowerRightCyl: 'new_power_right_cyl',
@@ -148,7 +174,7 @@ export function useUpdateCustomer() {
         .single();
 
       if (error) throw error;
-      return result;
+      return mapCustomer(result);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });

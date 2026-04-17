@@ -8,18 +8,14 @@ interface WholesaleState {
 }
 
 export const useWholesale = create<WholesaleState>()((set) => {
-  // Try to restore from sessionStorage on initialization
-  const savedPassword = sessionStorage.getItem("wholesale_password");
-
+  // We keep the structure for compatibility, but the state is now driven by AuthProvider
   return {
-    isUnlocked: !!savedPassword,
-    wholesalePassword: savedPassword,
+    isUnlocked: false,
+    wholesalePassword: null,
     unlock: (password: string) => {
-      sessionStorage.setItem("wholesale_password", password);
       set({ isUnlocked: true, wholesalePassword: password });
     },
     lock: () => {
-      sessionStorage.removeItem("wholesale_password");
       set({ isUnlocked: false, wholesalePassword: null });
     },
   };

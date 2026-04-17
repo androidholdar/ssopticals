@@ -4,10 +4,21 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { signOut } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const navItems = [
     { href: "/customers", label: "Customers", icon: Users },
@@ -60,6 +71,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowLogoutConfirm(true);
+  };
+
   return (
     <div
       className="flex h-screen bg-muted/20"
@@ -93,43 +109,41 @@ export function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-
-        <div className="p-4 border-t bg-muted/50">
-          <Button
-            variant="ghost"
-            onClick={() => signOut()}
-            className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all font-medium"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </Button>
-        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="flex justify-center pt-2">
-          <span className="text-xl font-bold text-muted-foreground tracking-[0.2em] uppercase">
-            S.S. OPTICALS
-          </span>
+      <main className="flex-1 overflow-auto relative">
+        {/* Top Header with Logout */}
+        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b px-4 py-2 flex items-center justify-between md:justify-end">
+          <div className="md:hidden flex flex-col">
+            <span className="text-sm font-bold text-primary leading-none">S.S. OPTICALS</span>
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Narbada eye care</span>
+          </div>
+
+          <div className="hidden md:flex flex-1 justify-center absolute left-0 right-0 pointer-events-none">
+            <span className="text-xl font-bold text-muted-foreground tracking-[0.2em] uppercase">
+              S.S. OPTICALS
+            </span>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogoutClick}
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all font-bold gap-2 rounded-full px-4 h-9 z-50 pointer-events-auto"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </Button>
         </div>
-        <div className="max-w-7xl mx-auto p-4 md:p-8 pt-2 md:pt-4">
+
+        <div className="max-w-7xl mx-auto p-4 md:p-8 pt-4 md:pt-6">
           {children}
         </div>
       </main>
 
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex flex-col z-50">
-        <div className="flex justify-between items-center px-4 py-1.5 border-b bg-muted/30">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Navigation</span>
-          <button
-            onClick={() => signOut()}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-destructive/20 text-destructive text-[10px] font-bold transition-all hover:bg-destructive/10"
-          >
-            <LogOut className="w-3 h-3" />
-            LOGOUT
-          </button>
-        </div>
         <div className="flex justify-around p-2">
           {navItems.map((item) => {
               const Icon = item.icon;
@@ -146,6 +160,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
             })}
         </div>
       </div>
+
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will need to login again to access your records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => signOut()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

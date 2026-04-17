@@ -67,19 +67,25 @@ ALTER TABLE form_presets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE form_preset_fields ENABLE ROW LEVEL SECURITY;
 
 -- 3. Create RLS Policies
--- Security Note: These policies are basic. For production, consider using Supabase Auth
--- to restrict write access to authorized users only.
+-- Restrict access to authenticated users only
 
--- Categories: Anyone can read, but you can hide wholesale_price column in Supabase UI if needed.
-CREATE POLICY "Public read categories" ON categories FOR SELECT USING (true);
-CREATE POLICY "Wholesale access categories" ON categories FOR ALL USING (true); -- In reality, check wholesale_password
+DROP POLICY IF EXISTS "Public read categories" ON categories;
+DROP POLICY IF EXISTS "Wholesale access categories" ON categories;
+CREATE POLICY "Authenticated users categories access" ON categories FOR ALL TO authenticated USING (true);
 
-CREATE POLICY "Enable all for customers" ON customers FOR ALL USING (true);
-CREATE POLICY "Enable all for presets" ON form_presets FOR ALL USING (true);
-CREATE POLICY "Enable all for fields" ON form_preset_fields FOR ALL USING (true);
-CREATE POLICY "Enable all for settings" ON settings FOR ALL USING (true);
+DROP POLICY IF EXISTS "Enable all for customers" ON customers;
+CREATE POLICY "Authenticated users customers access" ON customers FOR ALL TO authenticated USING (true);
 
--- 4. Password Verification Function (RPC)
+DROP POLICY IF EXISTS "Enable all for presets" ON form_presets;
+CREATE POLICY "Authenticated users presets access" ON form_presets FOR ALL TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Enable all for fields" ON form_preset_fields;
+CREATE POLICY "Authenticated users fields access" ON form_preset_fields FOR ALL TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Enable all for settings" ON settings;
+CREATE POLICY "Authenticated users settings access" ON settings FOR ALL TO authenticated USING (true);
+
+-- 4. Password Verification Function (RPC) - LEGACY (kept for compatibility, not used by UI)
 CREATE OR REPLACE FUNCTION verify_wholesale_password(input_password TEXT, is_master BOOLEAN DEFAULT FALSE)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -91,8 +97,6 @@ BEGIN
         SELECT wholesale_password_hash INTO stored_password FROM settings ORDER BY id ASC LIMIT 1;
     END IF;
 
-    -- If no password set, and input is empty string, return true (unlocked by default if reset)
-    -- Otherwise compare input
     IF stored_password IS NULL THEN
         RETURN FALSE;
     END IF;

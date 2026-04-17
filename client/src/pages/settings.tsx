@@ -49,6 +49,7 @@ export default function SettingsPage() {
       setMasterPasswordInput("");
       setConfirmPassword("");
     } catch (error: any) {
+      console.error("Password update error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
@@ -90,6 +91,7 @@ export default function SettingsPage() {
       await resetSettings.mutateAsync();
       toast({ title: "Password Reset", description: "Wholesale password has been cleared." });
     } catch (error: any) {
+      console.error("Password reset error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
@@ -164,6 +166,9 @@ export default function SettingsPage() {
       if (data.form_preset_fields?.length > 0) {
         await supabase.from('form_preset_fields').insert(data.form_preset_fields);
       }
+
+      // 3. Sync sequences
+      await supabase.rpc('sync_sequences');
 
       toast({ title: "Restore Successful", description: "Application data has been restored. Refreshing..." });
       setTimeout(() => {

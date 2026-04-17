@@ -86,13 +86,48 @@ DECLARE
     stored_password TEXT;
 BEGIN
     IF is_master THEN
-        SELECT master_password_hash INTO stored_password FROM settings WHERE id = 1;
+        SELECT master_password_hash INTO stored_password FROM settings ORDER BY id ASC LIMIT 1;
     ELSE
-        SELECT wholesale_password_hash INTO stored_password FROM settings WHERE id = 1;
+        SELECT wholesale_password_hash INTO stored_password FROM settings ORDER BY id ASC LIMIT 1;
     END IF;
 
-    -- If no password set, treat as invalid (or valid if that's the logic)
-    -- In this app, we want to return true for empty string if that's how it's initialized
+    -- If no password set, and input is empty string, return true (unlocked by default if reset)
+    -- Otherwise compare input
+    IF stored_password IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
     RETURN stored_password = input_password;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. Sequence Synchronization Function
+CREATE OR REPLACE FUNCTION sync_sequences()
+RETURNS VOID AS $$
+BEGIN
+    -- Sync categories sequence
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'categories_id_seq') THEN
+        PERFORM setval('categories_id_seq', COALESCE((SELECT MAX(id) FROM categories), 0) + 1, false);
+    END IF;
+
+    -- Sync customers sequence
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'customers_id_seq') THEN
+        PERFORM setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 0) + 1, false);
+    END IF;
+
+    -- Sync form_presets sequence
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'form_presets_id_seq') THEN
+        PERFORM setval('form_presets_id_seq', COALESCE((SELECT MAX(id) FROM form_presets), 0) + 1, false);
+    END IF;
+
+    -- Sync form_preset_fields sequence
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'form_preset_fields_id_seq') THEN
+        PERFORM setval('form_preset_fields_id_seq', COALESCE((SELECT MAX(id) FROM form_preset_fields), 0) + 1, false);
+    END IF;
+
+    -- Sync settings sequence
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'settings_id_seq') THEN
+        PERFORM setval('settings_id_seq', COALESCE((SELECT MAX(id) FROM settings), 0) + 1, false);
+    END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

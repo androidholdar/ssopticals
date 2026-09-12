@@ -40,6 +40,16 @@ export default function CustomersPage() {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isDialogOpen) {
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isDialogOpen]);
   const [newCustomer, setNewCustomer] = useState<any>({
     name: "",
     date: format(new Date(), 'dd/MM/yyyy'),
@@ -276,9 +286,11 @@ export default function CustomersPage() {
             <div className="relative">
               <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
               <Input 
+                ref={!isEdit ? nameInputRef : undefined}
                 className="pl-9"
                 value={currentData.name} 
                 onChange={e => setter(e.target.value)}
+                autoFocus={!isEdit}
                 required 
               />
             </div>
@@ -395,7 +407,24 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs px-2.5 py-0 border border-foreground/60 font-medium hover:bg-accent"
+                    onClick={() => {
+                      if (isEdit) {
+                        setSelectedCustomer((prev: any) => prev ? ({ ...prev, newPowerLeftAdd: prev.newPowerRightAdd || "" }) : null);
+                      } else {
+                        setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: prev.newPowerRightAdd || "" }));
+                      }
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
@@ -525,7 +554,24 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-bold text-muted-foreground uppercase">Left Eye (L)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs px-2.5 py-0 border border-foreground/60 font-medium hover:bg-accent"
+                    onClick={() => {
+                      if (isEdit) {
+                        setSelectedCustomer((prev: any) => prev ? ({ ...prev, oldPowerLeftAdd: prev.oldPowerRightAdd || "" }) : null);
+                      } else {
+                        setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: prev.oldPowerRightAdd || "" }));
+                      }
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
@@ -697,6 +743,10 @@ export default function CustomersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            nameInputRef.current?.focus();
+          }}
           onKeyDown={handleKeyDown}
         >
           <DialogHeader>

@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { cn } from "@/lib/utils";
+import { cn, sanitizeMobileInput, isValidMobile } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CustomersPage() {
@@ -107,10 +107,10 @@ export default function CustomersPage() {
         });
       }
 
-      if (newCustomer.mobile && newCustomer.mobile.length !== 10) {
+      if (newCustomer.mobile && !isValidMobile(newCustomer.mobile)) {
         return toast({ 
           title: "Invalid Mobile Number", 
-          description: "Mobile number must be exactly 10 digits.", 
+          description: "Mobile number must be 10 digits (or +91 followed by 10 digits).",
           variant: "destructive" 
         });
       }
@@ -178,10 +178,10 @@ export default function CustomersPage() {
         });
       }
 
-      if (selectedCustomer.mobile && selectedCustomer.mobile.length !== 10) {
+      if (selectedCustomer.mobile && !isValidMobile(selectedCustomer.mobile)) {
         return toast({ 
           title: "Invalid Mobile Number", 
-          description: "Mobile number must be exactly 10 digits.", 
+          description: "Mobile number must be 10 digits (or +91 followed by 10 digits).",
           variant: "destructive" 
         });
       }
@@ -293,16 +293,11 @@ export default function CustomersPage() {
               <Input 
                 className="pl-9"
                 type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={10}
-                placeholder="10 digit number"
+                placeholder="10 digit or +91XXXXXXXXXX"
                 value={currentData.mobile} 
                 onChange={e => {
-                  const val = e.target.value.replace(/\D/g, '');
-                  if (val.length <= 10) {
-                    setter(val);
-                  }
+                  const val = sanitizeMobileInput(e.target.value);
+                  setter(val);
                 }} 
               />
             </div>

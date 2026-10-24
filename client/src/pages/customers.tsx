@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar as CalendarIcon, User, Users, MapPin, Phone, Eye, Trash2, Edit2, X, Lock, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, User, Users, MapPin, Phone, Eye, Trash2, Edit2, X, Lock, ArrowUpDown, ArrowDown } from "lucide-react";
 import { format, parse } from "date-fns";
 import { useWholesale } from "@/hooks/use-wholesale";
 import {
@@ -21,6 +21,7 @@ import {
 
 import { cn, sanitizeMobileInput, isValidMobile } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { OpticalPowerInput, cleanAndFormat } from "@/components/optical-power-input";
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
@@ -50,7 +51,8 @@ export default function CustomersPage() {
       return () => clearTimeout(timer);
     }
   }, [isDialogOpen]);
-  const [newCustomer, setNewCustomer] = useState<any>({
+
+  const emptyCustomerState = {
     name: "",
     date: format(new Date(), 'dd/MM/yyyy'),
     mobile: "",
@@ -73,8 +75,123 @@ export default function CustomersPage() {
     oldPowerLeftAxis: "",
     oldPowerLeftAdd: "",
     notes: ""
-  });
+  };
 
+  const [newCustomer, setNewCustomer] = useState<any>(emptyCustomerState);
+
+  // Helper to validate optical powers before save/update
+  const validateOpticalPowers = (data: any): string | null => {
+    const pairs = [
+      { name: "New Power Right Eye", cyl: data.newPowerRightCyl, axis: data.newPowerRightAxis },
+      { name: "New Power Left Eye", cyl: data.newPowerLeftCyl, axis: data.newPowerLeftAxis },
+      { name: "Old Power Right Eye", cyl: data.oldPowerRightCyl, axis: data.oldPowerRightAxis },
+      { name: "Old Power Left Eye", cyl: data.oldPowerLeftCyl, axis: data.oldPowerLeftAxis },
+    ];
+
+    for (const p of pairs) {
+      const formattedCyl = cleanAndFormat("cyl", p.cyl || "");
+      const formattedAxis = cleanAndFormat("axis", p.axis || "");
+
+      if (formattedCyl !== "") {
+        if (formattedAxis === "") {
+          return `${p.name} has a CYL value but is missing a valid AXIS (5-180 in multiples of 5).`;
+        }
+        const axisNum = parseInt(formattedAxis, 10);
+        if (isNaN(axisNum) || axisNum < 5 || axisNum > 180 || axisNum % 5 !== 0) {
+          return `${p.name} AXIS must be between 5 and 180 in multiples of 5.`;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Helper to format all optical fields in a customer object before saving
+  const formatCustomerPowerFields = (data: any) => {
+    return {
+      ...data,
+      newPowerRightSph: cleanAndFormat("sph", data.newPowerRightSph || ""),
+      newPowerRightCyl: cleanAndFormat("cyl", data.newPowerRightCyl || ""),
+      newPowerRightAxis: cleanAndFormat("cyl", data.newPowerRightCyl || "") === "" ? "" : cleanAndFormat("axis", data.newPowerRightAxis || ""),
+      newPowerRightAdd: cleanAndFormat("add", data.newPowerRightAdd || ""),
+
+      newPowerLeftSph: cleanAndFormat("sph", data.newPowerLeftSph || ""),
+      newPowerLeftCyl: cleanAndFormat("cyl", data.newPowerLeftCyl || ""),
+      newPowerLeftAxis: cleanAndFormat("cyl", data.newPowerLeftCyl || "") === "" ? "" : cleanAndFormat("axis", data.newPowerLeftAxis || ""),
+      newPowerLeftAdd: cleanAndFormat("add", data.newPowerLeftAdd || ""),
+
+      oldPowerRightSph: cleanAndFormat("sph", data.oldPowerRightSph || ""),
+      oldPowerRightCyl: cleanAndFormat("cyl", data.oldPowerRightCyl || ""),
+      oldPowerRightAxis: cleanAndFormat("cyl", data.oldPowerRightCyl || "") === "" ? "" : cleanAndFormat("axis", data.oldPowerRightAxis || ""),
+      oldPowerRightAdd: cleanAndFormat("add", data.oldPowerRightAdd || ""),
+
+      oldPowerLeftSph: cleanAndFormat("sph", data.oldPowerLeftSph || ""),
+      oldPowerLeftCyl: cleanAndFormat("cyl", data.oldPowerLeftCyl || ""),
+      oldPowerLeftAxis: cleanAndFormat("cyl", data.oldPowerLeftAxis || "") === "" ? "" : cleanAndFormat("axis", data.oldPowerLeftAxis || ""),
+      oldPowerLeftAdd: cleanAndFormat("add", data.oldPowerLeftAdd || ""),
+    };
+  };
+
+  // Move to Old Power implementation
+  const handleMoveToOldPower = (isEdit: boolean) => {
+    const currentData = isEdit ? selectedCustomer : newCustomer;
+    if (!currentData) return;
+
+    // Check CYL/AXIS validation for NEW POWER before moving
+    const newRightCyl = cleanAndFormat("cyl", currentData.newPowerRightCyl || "");
+    const newRightAxis = cleanAndFormat("axis", currentData.newPowerRightAxis || "");
+    if (newRightCyl !== "" && newRightAxis === "") {
+      return toast({
+        title: "Incomplete New Power",
+        description: "New Power Right Eye has CYL but no valid AXIS. Please enter AXIS before moving.",
+        variant: "destructive"
+      });
+    }
+
+    const newLeftCyl = cleanAndFormat("cyl", currentData.newPowerLeftCyl || "");
+    const newLeftAxis = cleanAndFormat("axis", currentData.newPowerLeftAxis || "");
+    if (newLeftCyl !== "" && newLeftAxis === "") {
+      return toast({
+        title: "Incomplete New Power",
+        description: "New Power Left Eye has CYL but no valid AXIS. Please enter AXIS before moving.",
+        variant: "destructive"
+      });
+    }
+
+    const updateMap = {
+      // Transfer to Old Power
+      oldPowerRightSph: cleanAndFormat("sph", currentData.newPowerRightSph || ""),
+      oldPowerRightCyl: newRightCyl,
+      oldPowerRightAxis: newRightCyl === "" ? "" : newRightAxis,
+      oldPowerRightAdd: cleanAndFormat("add", currentData.newPowerRightAdd || ""),
+
+      oldPowerLeftSph: cleanAndFormat("sph", currentData.newPowerLeftSph || ""),
+      oldPowerLeftCyl: newLeftCyl,
+      oldPowerLeftAxis: newLeftCyl === "" ? "" : newLeftAxis,
+      oldPowerLeftAdd: cleanAndFormat("add", currentData.newPowerLeftAdd || ""),
+
+      // Clear New Power
+      newPowerRightSph: "",
+      newPowerRightCyl: "",
+      newPowerRightAxis: "",
+      newPowerRightAdd: "",
+
+      newPowerLeftSph: "",
+      newPowerLeftCyl: "",
+      newPowerLeftAxis: "",
+      newPowerLeftAdd: "",
+    };
+
+    if (isEdit) {
+      setSelectedCustomer((prev: any) => prev ? ({ ...prev, ...updateMap }) : null);
+    } else {
+      setNewCustomer((prev: any) => ({ ...prev, ...updateMap }));
+    }
+
+    toast({
+      title: "Moved to Old Power",
+      description: "New Power values transferred to Old Power and cleared.",
+    });
+  };
 
   // Determine active preset fields
   const activePreset = presets.find(p => p.isActive) || presets[0];
@@ -125,6 +242,15 @@ export default function CustomersPage() {
         });
       }
 
+      const opticalValidationError = validateOpticalPowers(newCustomer);
+      if (opticalValidationError) {
+        return toast({
+          title: "Incomplete Prescription",
+          description: opticalValidationError,
+          variant: "destructive"
+        });
+      }
+
       // Check for duplicate locally first for better UX
       const isDuplicate = customers.some(c => 
         c.name.toLowerCase() === newCustomer.name.toLowerCase() && 
@@ -139,38 +265,16 @@ export default function CustomersPage() {
         });
       }
 
-      const { age, ...rest } = newCustomer;
+      const formattedData = formatCustomerPowerFields(newCustomer);
+      const { age, ...rest } = formattedData;
       await createMutation.mutateAsync({
         ...rest,
-        name: newCustomer.name || "",
-        date: newCustomer.date || format(new Date(), 'dd/MM/yyyy'),
+        name: formattedData.name || "",
+        date: formattedData.date || format(new Date(), 'dd/MM/yyyy'),
         age: age ? parseInt(age.toString()) : undefined,
       });
       setIsDialogOpen(false);
-      setNewCustomer({
-        name: "",
-        date: format(new Date(), 'dd/MM/yyyy'),
-        mobile: "",
-        address: "",
-        age: "",
-        newPowerRightSph: "",
-        newPowerRightCyl: "",
-        newPowerRightAxis: "",
-        newPowerRightAdd: "",
-        newPowerLeftSph: "",
-        newPowerLeftCyl: "",
-        newPowerLeftAxis: "",
-        newPowerLeftAdd: "",
-        oldPowerRightSph: "",
-        oldPowerRightCyl: "",
-        oldPowerRightAxis: "",
-        oldPowerRightAdd: "",
-        oldPowerLeftSph: "",
-        oldPowerLeftCyl: "",
-        oldPowerLeftAxis: "",
-        oldPowerLeftAdd: "",
-        notes: ""
-      });
+      setNewCustomer(emptyCustomerState);
     } catch (error) {
       toast({ title: "Error", description: "Failed to create customer.", variant: "destructive" });
     }
@@ -196,6 +300,15 @@ export default function CustomersPage() {
         });
       }
 
+      const opticalValidationError = validateOpticalPowers(selectedCustomer);
+      if (opticalValidationError) {
+        return toast({
+          title: "Incomplete Prescription",
+          description: opticalValidationError,
+          variant: "destructive"
+        });
+      }
+
       // Check for duplicate (excluding the current customer being edited)
       const isDuplicate = customers.some(c => 
         c.id !== selectedCustomer.id &&
@@ -211,7 +324,8 @@ export default function CustomersPage() {
         });
       }
 
-      const { id, createdAt, age, ...updates } = selectedCustomer as any;
+      const formattedData = formatCustomerPowerFields(selectedCustomer);
+      const { id, createdAt, age, ...updates } = formattedData as any;
       await updateMutation.mutateAsync({
         id,
         ...updates,
@@ -264,6 +378,72 @@ export default function CustomersPage() {
     newSelected.add(id);
     setSelectedIds(newSelected);
     window.navigator.vibrate?.(50);
+  };
+
+  const handlePowerChange = (
+    fieldKey: string,
+    val: string,
+    isEdit: boolean
+  ) => {
+    const updateObj: any = { [fieldKey]: val };
+
+    // If CYL is cleared, clear corresponding AXIS immediately
+    if (fieldKey.endsWith("Cyl")) {
+      const cleanCyl = cleanAndFormat("cyl", val);
+      if (cleanCyl === "") {
+        const axisKey = fieldKey.replace("Cyl", "Axis");
+        updateObj[axisKey] = "";
+      }
+    }
+
+    if (isEdit) {
+      setSelectedCustomer((prev: any) => prev ? ({ ...prev, ...updateObj }) : null);
+    } else {
+      setNewCustomer((prev: any) => ({ ...prev, ...updateObj }));
+    }
+  };
+
+  const handleCopyAdd = (isOld: boolean, isEdit: boolean) => {
+    const currentData = isEdit ? selectedCustomer : newCustomer;
+    if (!currentData) return;
+
+    if (isOld) {
+      const rightCyl = cleanAndFormat("cyl", currentData.oldPowerRightCyl || "");
+      const rightAxis = cleanAndFormat("axis", currentData.oldPowerRightAxis || "");
+      const updateMap: any = {
+        oldPowerLeftAdd: currentData.oldPowerRightAdd || "",
+      };
+      if (rightCyl !== "") {
+        updateMap.oldPowerLeftCyl = rightCyl;
+        updateMap.oldPowerLeftAxis = rightAxis;
+      } else {
+        updateMap.oldPowerLeftCyl = "";
+        updateMap.oldPowerLeftAxis = "";
+      }
+      if (isEdit) {
+        setSelectedCustomer((prev: any) => prev ? ({ ...prev, ...updateMap }) : null);
+      } else {
+        setNewCustomer((prev: any) => ({ ...prev, ...updateMap }));
+      }
+    } else {
+      const rightCyl = cleanAndFormat("cyl", currentData.newPowerRightCyl || "");
+      const rightAxis = cleanAndFormat("axis", currentData.newPowerRightAxis || "");
+      const updateMap: any = {
+        newPowerLeftAdd: currentData.newPowerRightAdd || "",
+      };
+      if (rightCyl !== "") {
+        updateMap.newPowerLeftCyl = rightCyl;
+        updateMap.newPowerLeftAxis = rightAxis;
+      } else {
+        updateMap.newPowerLeftCyl = "";
+        updateMap.newPowerLeftAxis = "";
+      }
+      if (isEdit) {
+        setSelectedCustomer((prev: any) => prev ? ({ ...prev, ...updateMap }) : null);
+      } else {
+        setNewCustomer((prev: any) => ({ ...prev, ...updateMap }));
+      }
+    }
   };
 
   const renderField = (key: string, label: string, isEdit: boolean = false) => {
@@ -350,58 +530,39 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="sph"
                       placeholder="SPH"
-                      value={currentData.newPowerRightSph || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightSph: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightSph: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerRightSph || ""}
+                      onChange={(val) => handlePowerChange("newPowerRightSph", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">CYL</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="cyl"
                       placeholder="CYL"
-                      value={currentData.newPowerRightCyl || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightCyl: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightCyl: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerRightCyl || ""}
+                      onChange={(val) => handlePowerChange("newPowerRightCyl", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">AXIS</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="axis"
                       placeholder="AXIS"
-                      value={currentData.newPowerRightAxis || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightAxis: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightAxis: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerRightAxis || ""}
+                      cylValue={currentData.newPowerRightCyl || ""}
+                      onChange={(val) => handlePowerChange("newPowerRightAxis", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">Add.</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="add"
                       placeholder="Add."
-                      value={currentData.newPowerRightAdd || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerRightAdd: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerRightAdd: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerRightAdd || ""}
+                      onChange={(val) => handlePowerChange("newPowerRightAdd", val, isEdit)}
                     />
                   </div>
                 </div>
@@ -414,13 +575,7 @@ export default function CustomersPage() {
                     variant="outline"
                     size="sm"
                     className="h-6 text-xs px-2.5 py-0 border border-foreground/60 font-medium hover:bg-accent"
-                    onClick={() => {
-                      if (isEdit) {
-                        setSelectedCustomer((prev: any) => prev ? ({ ...prev, newPowerLeftAdd: prev.newPowerRightAdd || "" }) : null);
-                      } else {
-                        setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: prev.newPowerRightAdd || "" }));
-                      }
-                    }}
+                    onClick={() => handleCopyAdd(false, isEdit)}
                   >
                     Copy
                   </Button>
@@ -428,61 +583,56 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="sph"
                       placeholder="SPH"
-                      value={currentData.newPowerLeftSph || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftSph: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftSph: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerLeftSph || ""}
+                      onChange={(val) => handlePowerChange("newPowerLeftSph", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">CYL</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="cyl"
                       placeholder="CYL"
-                      value={currentData.newPowerLeftCyl || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftCyl: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftCyl: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerLeftCyl || ""}
+                      onChange={(val) => handlePowerChange("newPowerLeftCyl", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">AXIS</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="axis"
                       placeholder="AXIS"
-                      value={currentData.newPowerLeftAxis || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftAxis: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAxis: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerLeftAxis || ""}
+                      cylValue={currentData.newPowerLeftCyl || ""}
+                      onChange={(val) => handlePowerChange("newPowerLeftAxis", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">Add.</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="add"
                       placeholder="Add."
-                      value={currentData.newPowerLeftAdd || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, newPowerLeftAdd: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.newPowerLeftAdd || ""}
+                      onChange={(val) => handlePowerChange("newPowerLeftAdd", val, isEdit)}
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Move to Old Power Button */}
+              <div className="pt-2 flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto font-medium text-xs shadow-sm border-primary/30 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => handleMoveToOldPower(isEdit)}
+                >
+                  <ArrowDown className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                  Move to Old Power
+                </Button>
               </div>
             </div>
           </div>
@@ -497,58 +647,39 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="sph"
                       placeholder="SPH"
-                      value={currentData.oldPowerRightSph || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightSph: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightSph: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerRightSph || ""}
+                      onChange={(val) => handlePowerChange("oldPowerRightSph", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">CYL</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="cyl"
                       placeholder="CYL"
-                      value={currentData.oldPowerRightCyl || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightCyl: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightCyl: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerRightCyl || ""}
+                      onChange={(val) => handlePowerChange("oldPowerRightCyl", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">AXIS</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="axis"
                       placeholder="AXIS"
-                      value={currentData.oldPowerRightAxis || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightAxis: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightAxis: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerRightAxis || ""}
+                      cylValue={currentData.oldPowerRightCyl || ""}
+                      onChange={(val) => handlePowerChange("oldPowerRightAxis", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">Add.</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="add"
                       placeholder="Add."
-                      value={currentData.oldPowerRightAdd || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerRightAdd: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerRightAdd: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerRightAdd || ""}
+                      onChange={(val) => handlePowerChange("oldPowerRightAdd", val, isEdit)}
                     />
                   </div>
                 </div>
@@ -561,13 +692,7 @@ export default function CustomersPage() {
                     variant="outline"
                     size="sm"
                     className="h-6 text-xs px-2.5 py-0 border border-foreground/60 font-medium hover:bg-accent"
-                    onClick={() => {
-                      if (isEdit) {
-                        setSelectedCustomer((prev: any) => prev ? ({ ...prev, oldPowerLeftAdd: prev.oldPowerRightAdd || "" }) : null);
-                      } else {
-                        setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: prev.oldPowerRightAdd || "" }));
-                      }
-                    }}
+                    onClick={() => handleCopyAdd(true, isEdit)}
                   >
                     Copy
                   </Button>
@@ -575,58 +700,39 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">SPH</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="sph"
                       placeholder="SPH"
-                      value={currentData.oldPowerLeftSph || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftSph: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftSph: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerLeftSph || ""}
+                      onChange={(val) => handlePowerChange("oldPowerLeftSph", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">CYL</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="cyl"
                       placeholder="CYL"
-                      value={currentData.oldPowerLeftCyl || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftCyl: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftCyl: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerLeftCyl || ""}
+                      onChange={(val) => handlePowerChange("oldPowerLeftCyl", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">AXIS</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="axis"
                       placeholder="AXIS"
-                      value={currentData.oldPowerLeftAxis || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAxis: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerLeftAxis || ""}
+                      cylValue={currentData.oldPowerLeftCyl || ""}
+                      onChange={(val) => handlePowerChange("oldPowerLeftAxis", val, isEdit)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] uppercase">Add.</Label>
-                    <Input 
+                    <OpticalPowerInput
+                      type="add"
                       placeholder="Add."
-                      value={currentData.oldPowerLeftAdd || ""} 
-                      onChange={e => {
-                        if (isEdit) {
-                          setSelectedCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: e.target.value }));
-                        } else {
-                          setNewCustomer((prev: any) => ({ ...prev, oldPowerLeftAdd: e.target.value }));
-                        }
-                      }} 
+                      value={currentData.oldPowerLeftAdd || ""}
+                      onChange={(val) => handlePowerChange("oldPowerLeftAdd", val, isEdit)}
                     />
                   </div>
                 </div>

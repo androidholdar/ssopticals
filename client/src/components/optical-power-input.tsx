@@ -26,10 +26,23 @@ export function cleanAndFormat(type: PowerType, input: string): string {
   if (!input || input.trim() === "") return "";
   const trimmed = input.trim();
 
-  if (type === "sph" || type === "cyl") {
+  if (type === "sph") {
     const num = parseFloat(trimmed.replace(/\+/g, ""));
     if (isNaN(num) || Math.abs(num) < 0.001) return "";
-    const rounded = Math.round(num * 4) / 4;
+    let rounded = Math.round(num * 4) / 4;
+    if (rounded < -30.00) rounded = -30.00;
+    if (rounded > 30.00) rounded = 30.00;
+    if (Math.abs(rounded) < 0.001) return "";
+    const sign = rounded > 0 ? "+" : "-";
+    return `${sign}${Math.abs(rounded).toFixed(2)}`;
+  }
+
+  if (type === "cyl") {
+    const num = parseFloat(trimmed.replace(/\+/g, ""));
+    if (isNaN(num) || Math.abs(num) < 0.001) return "";
+    let rounded = Math.round(num * 4) / 4;
+    if (rounded < -10.00) rounded = -10.00;
+    if (rounded > 10.00) rounded = 10.00;
     if (Math.abs(rounded) < 0.001) return "";
     const sign = rounded > 0 ? "+" : "-";
     return `${sign}${Math.abs(rounded).toFixed(2)}`;
@@ -111,6 +124,7 @@ export function OpticalPowerInput({
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (type === "axis" && isCylEmpty) return;
     if (startYRef.current === null) return;
 
     const deltaY = startYRef.current - e.clientY;
@@ -127,14 +141,24 @@ export function OpticalPowerInput({
     }
 
     if (isSwipingRef.current) {
+      e.preventDefault();
       const adjustedDelta = deltaY > 0 ? deltaY - MOVEMENT_THRESHOLD : deltaY + MOVEMENT_THRESHOLD;
       const steps = Math.trunc(adjustedDelta / STEP_PIXELS);
 
       let newVal = "";
 
-      if (type === "sph" || type === "cyl") {
+      if (type === "sph") {
         const startNum = parsePowerValue(startValueRef.current) ?? 0;
-        const newNum = startNum + steps * 0.25;
+        const newNum = Math.min(30.00, Math.max(-30.00, startNum + steps * 0.25));
+        if (Math.abs(newNum) < 0.001) {
+          newVal = "";
+        } else {
+          const sign = newNum > 0 ? "+" : "";
+          newVal = `${sign}${newNum.toFixed(2)}`;
+        }
+      } else if (type === "cyl") {
+        const startNum = parsePowerValue(startValueRef.current) ?? 0;
+        const newNum = Math.min(10.00, Math.max(-10.00, startNum + steps * 0.25));
         if (Math.abs(newNum) < 0.001) {
           newVal = "";
         } else {
@@ -143,9 +167,20 @@ export function OpticalPowerInput({
         }
       } else if (type === "add") {
         const isStartEmpty = !startValueRef.current || startValueRef.current.trim() === "";
-        const startNum = isStartEmpty ? 1.00 : (parsePowerValue(startValueRef.current) ?? 1.00);
-        const newNum = Math.min(4.00, Math.max(1.00, startNum + steps * 0.25));
-        newVal = `+${newNum.toFixed(2)}`;
+        if (isStartEmpty) {
+          if (steps > 0) {
+            const newNum = Math.min(4.00, 1.00 + steps * 0.25);
+            newVal = `+${newNum.toFixed(2)}`;
+          } else if (steps < 0) {
+            newVal = "+1.00";
+          } else {
+            newVal = "";
+          }
+        } else {
+          const startNum = parsePowerValue(startValueRef.current) ?? 1.00;
+          const newNum = Math.min(4.00, Math.max(1.00, startNum + steps * 0.25));
+          newVal = `+${newNum.toFixed(2)}`;
+        }
       } else if (type === "axis") {
         const isStartEmpty = !startValueRef.current || startValueRef.current.trim() === "";
         if (isStartEmpty) {
@@ -252,10 +287,11 @@ export function OpticalPowerInput({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       className={cn(
-        "select-none touch-pan-y",
+        "select-none touch-none",
         isCylEmpty && "cursor-not-allowed opacity-60 bg-muted/20",
         className
       )}
+      style={{ touchAction: "none" }}
     />
   );
 }

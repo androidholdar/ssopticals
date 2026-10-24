@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useId } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,27 @@ interface OpticalPowerInputProps {
   placeholder?: string;
   id?: string;
   className?: string;
+}
+
+// Module-level state for tracking active field
+let globalActiveFieldId: string | null = null;
+const listeners = new Set<() => void>();
+
+export function setActiveFieldId(id: string | null) {
+  globalActiveFieldId = id;
+  listeners.forEach((fn) => fn());
+}
+
+export function useActiveFieldId() {
+  const [activeId, setActiveId] = useState<string | null>(globalActiveFieldId);
+  useEffect(() => {
+    const listener = () => setActiveId(globalActiveFieldId);
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+  return activeId;
 }
 
 export function parsePowerValue(val: string): number | null {
@@ -61,7 +82,7 @@ export function cleanAndFormat(type: PowerType, input: string): string {
     const num = parseInt(trimmed.replace(/\+/g, ""), 10);
     if (isNaN(num) || num <= 0) return "";
     let rounded = Math.round(num / 5) * 5;
-    if (rounded < 5) return "";
+    if (rounded < 5) rounded = 5;
     if (rounded > 180) rounded = 180;
     return rounded.toString();
   }
@@ -69,16 +90,24 @@ export function cleanAndFormat(type: PowerType, input: string): string {
   return "";
 }
 
+const AXIS_VALUES = Array.from({ length: 36 }, (_, i) => (i + 1) * 5); // 5, 10, 15 ... 180
+
 export function OpticalPowerInput({
   type,
   value,
   onChange,
   cylValue,
   placeholder,
-  id,
+  id: customId,
   className,
 }: OpticalPowerInputProps) {
   const { toast } = useToast();
+  const generatedId = useId();
+  const fieldId = customId || generatedId;
+
+  const activeFieldId = useActiveFieldId();
+  const isActive = activeFieldId === fieldId;
+
   const [localValue, setLocalValue] = useState(value || "");
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,7 +115,7 @@ export function OpticalPowerInput({
   const startYRef = useRef<number | null>(null);
   const startValueRef = useRef<string>("");
   const isSwipingRef = useRef<boolean>(false);
-  const hasTriggeredToastRef = useRef<boolean>(false);
+  const wasActiveOnPointerDown = useRef<boolean>(false);
 
   const isCylEmpty = type === "axis" && (!cylValue || cylValue.trim() === "");
 
@@ -96,36 +125,24 @@ export function OpticalPowerInput({
     }
   }, [value, isFocused]);
 
-  const displayValue = isCylEmpty ? "" : (isFocused ? localValue : (value || ""));
+  const displayValue = isFocused ? localValue : (value || "");
 
   const handlePointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
-    if (type === "axis" && isCylEmpty) {
-      if (!hasTriggeredToastRef.current) {
-        toast({
-          title: "CYL Required",
-          description: "Please enter CYL value first.",
-          duration: 2000,
-        });
-        hasTriggeredToastRef.current = true;
-        setTimeout(() => {
-          hasTriggeredToastRef.current = false;
-        }, 1500);
-      }
-      e.preventDefault();
-      return;
-    }
-
+    wasActiveOnPointerDown.current = isActive;
     startYRef.current = e.clientY;
     startValueRef.current = value || "";
     isSwipingRef.current = false;
-    try {
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    } catch (_) {}
+
+    if (isActive && !isCylEmpty) {
+      try {
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      } catch (_) {}
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
-    if (type === "axis" && isCylEmpty) return;
     if (startYRef.current === null) return;
+    if (!wasActiveOnPointerDown.current || !isActive) return;
 
     const deltaY = startYRef.current - e.clientY;
     const MOVEMENT_THRESHOLD = 8;
@@ -183,24 +200,27 @@ export function OpticalPowerInput({
         }
       } else if (type === "axis") {
         const isStartEmpty = !startValueRef.current || startValueRef.current.trim() === "";
-        if (isStartEmpty) {
-          if (steps > 0) {
-            const newNum = Math.min(180, 5 + (steps - 1) * 5);
-            newVal = newNum.toString();
-          } else if (steps < 0) {
-            const newNum = Math.min(180, 5 + (steps + 1) * 5);
-            newVal = newNum >= 5 ? newNum.toString() : "";
-          } else {
-            newVal = "";
+        // Requirement: Empty AXIS baseline starts at 180.
+        // Circular wrap:
+        // UP (+ steps): 180 -> 5 -> 10 -> 15 ... -> 175 -> 180 -> 5
+        // DOWN (- steps): 180 -> 175 -> 170 ... -> 10 -> 5 -> 180 -> 175
+        let startIndex = 35; // index of 180 in AXIS_VALUES
+        if (!isStartEmpty) {
+          const startNum = parseInt(startValueRef.current, 10);
+          if (!isNaN(startNum) && startNum >= 5 && startNum <= 180) {
+            const idx = AXIS_VALUES.indexOf(Math.round(startNum / 5) * 5);
+            if (idx !== -1) startIndex = idx;
           }
+        }
+
+        if (steps === 0) {
+          newVal = startValueRef.current || (isStartEmpty ? "180" : "");
         } else {
-          const startNum = parseInt(startValueRef.current, 10) || 5;
-          const newNum = startNum + steps * 5;
-          if (newNum <= 0 || newNum < 5) {
-            newVal = "";
-          } else {
-            newVal = Math.min(180, newNum).toString();
+          let newIndex = (startIndex + steps) % 36;
+          if (newIndex < 0) {
+            newIndex = ((newIndex % 36) + 36) % 36;
           }
+          newVal = AXIS_VALUES[newIndex].toString();
         }
       }
 
@@ -219,10 +239,14 @@ export function OpticalPowerInput({
     if (isSwipingRef.current) {
       e.preventDefault();
       e.stopPropagation();
+    } else {
+      // It was a tap! Activate this field.
+      setActiveFieldId(fieldId);
     }
 
     startYRef.current = null;
     isSwipingRef.current = false;
+    wasActiveOnPointerDown.current = false;
   };
 
   const handlePointerCancel = (e: React.PointerEvent<HTMLInputElement>) => {
@@ -233,24 +257,11 @@ export function OpticalPowerInput({
     }
     startYRef.current = null;
     isSwipingRef.current = false;
+    wasActiveOnPointerDown.current = false;
   };
 
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (type === "axis" && isCylEmpty) {
-      e.target.blur();
-      if (!hasTriggeredToastRef.current) {
-        toast({
-          title: "CYL Required",
-          description: "Please enter CYL value first.",
-          duration: 2000,
-        });
-        hasTriggeredToastRef.current = true;
-        setTimeout(() => {
-          hasTriggeredToastRef.current = false;
-        }, 1500);
-      }
-      return;
-    }
+  const handleFocus = () => {
+    setActiveFieldId(fieldId);
     setIsFocused(true);
     setLocalValue(value || "");
   };
@@ -263,7 +274,6 @@ export function OpticalPowerInput({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (type === "axis" && isCylEmpty) return;
     setLocalValue(e.target.value);
     onChange(e.target.value);
   };
@@ -273,12 +283,11 @@ export function OpticalPowerInput({
   return (
     <Input
       ref={inputRef}
-      id={id}
+      id={fieldId}
       type="text"
       inputMode={inputMode}
       placeholder={placeholder}
       value={displayValue}
-      readOnly={isCylEmpty}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -287,11 +296,13 @@ export function OpticalPowerInput({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       className={cn(
-        "select-none touch-none",
-        isCylEmpty && "cursor-not-allowed opacity-60 bg-muted/20",
+        "select-none transition-all duration-150",
+        isActive ? "ring-2 ring-primary border-primary bg-primary/5" : "touch-pan-y",
         className
       )}
-      style={{ touchAction: "none" }}
+      style={{
+        touchAction: isActive ? "none" : "pan-y",
+      }}
     />
   );
 }

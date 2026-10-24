@@ -79,8 +79,43 @@ export default function CustomersPage() {
 
   const [newCustomer, setNewCustomer] = useState<any>(emptyCustomerState);
 
-  // Helper to validate optical powers before save/update
+  // Helper to validate optical powers before save/update/move
   const validateOpticalPowers = (data: any): string | null => {
+    const fieldsToValidate = [
+      { name: "New Power Right Eye SPH", val: data.newPowerRightSph, type: "sph" },
+      { name: "New Power Left Eye SPH", val: data.newPowerLeftSph, type: "sph" },
+      { name: "Old Power Right Eye SPH", val: data.oldPowerRightSph, type: "sph" },
+      { name: "Old Power Left Eye SPH", val: data.oldPowerLeftSph, type: "sph" },
+
+      { name: "New Power Right Eye CYL", val: data.newPowerRightCyl, type: "cyl" },
+      { name: "New Power Left Eye CYL", val: data.newPowerLeftCyl, type: "cyl" },
+      { name: "Old Power Right Eye CYL", val: data.oldPowerRightCyl, type: "cyl" },
+      { name: "Old Power Left Eye CYL", val: data.oldPowerLeftCyl, type: "cyl" },
+
+      { name: "New Power Right Eye ADD", val: data.newPowerRightAdd, type: "add" },
+      { name: "New Power Left Eye ADD", val: data.newPowerLeftAdd, type: "add" },
+      { name: "Old Power Right Eye ADD", val: data.oldPowerRightAdd, type: "add" },
+      { name: "Old Power Left Eye ADD", val: data.oldPowerLeftAdd, type: "add" },
+    ];
+
+    for (const item of fieldsToValidate) {
+      if (item.val && item.val.trim() !== "") {
+        const num = parseFloat(item.val.replace(/\+/g, ""));
+        if (isNaN(num)) {
+          return `${item.name} has an invalid numeric format.`;
+        }
+        if (item.type === "sph" && (num < -30.00 || num > 30.00)) {
+          return `${item.name} must be between -30.00 and +30.00.`;
+        }
+        if (item.type === "cyl" && (num < -10.00 || num > 10.00)) {
+          return `${item.name} must be between -10.00 and +10.00.`;
+        }
+        if (item.type === "add" && (num < 1.00 || num > 4.00)) {
+          return `${item.name} must be between +1.00 and +4.00.`;
+        }
+      }
+    }
+
     const pairs = [
       { name: "New Power Right Eye", cyl: data.newPowerRightCyl, axis: data.newPowerRightAxis },
       { name: "New Power Left Eye", cyl: data.newPowerLeftCyl, axis: data.newPowerLeftAxis },
@@ -89,14 +124,18 @@ export default function CustomersPage() {
     ];
 
     for (const p of pairs) {
-      const formattedCyl = cleanAndFormat("cyl", p.cyl || "");
-      const formattedAxis = cleanAndFormat("axis", p.axis || "");
+      const hasCyl = p.cyl && p.cyl.trim() !== "";
+      const hasAxis = p.axis && p.axis.trim() !== "";
 
-      if (formattedCyl !== "") {
-        if (formattedAxis === "") {
-          return `${p.name} has a CYL value but is missing a valid AXIS (5-180 in multiples of 5).`;
-        }
-        const axisNum = parseInt(formattedAxis, 10);
+      if (hasCyl && !hasAxis) {
+        return `${p.name} has CYL value but missing AXIS. Either fill both or leave both empty.`;
+      }
+      if (!hasCyl && hasAxis) {
+        return `${p.name} has AXIS value but missing CYL. Either fill both or leave both empty.`;
+      }
+
+      if (hasCyl && hasAxis) {
+        const axisNum = parseInt(p.axis.replace(/\+/g, ""), 10);
         if (isNaN(axisNum) || axisNum < 5 || axisNum > 180 || axisNum % 5 !== 0) {
           return `${p.name} AXIS must be between 5 and 180 in multiples of 5.`;
         }
@@ -126,7 +165,7 @@ export default function CustomersPage() {
 
       oldPowerLeftSph: cleanAndFormat("sph", data.oldPowerLeftSph || ""),
       oldPowerLeftCyl: cleanAndFormat("cyl", data.oldPowerLeftCyl || ""),
-      oldPowerLeftAxis: cleanAndFormat("cyl", data.oldPowerLeftAxis || "") === "" ? "" : cleanAndFormat("axis", data.oldPowerLeftAxis || ""),
+      oldPowerLeftAxis: cleanAndFormat("cyl", data.oldPowerLeftCyl || "") === "" ? "" : cleanAndFormat("axis", data.oldPowerLeftAxis || ""),
       oldPowerLeftAdd: cleanAndFormat("add", data.oldPowerLeftAdd || ""),
     };
   };
@@ -136,37 +175,51 @@ export default function CustomersPage() {
     const currentData = isEdit ? selectedCustomer : newCustomer;
     if (!currentData) return;
 
-    // Check CYL/AXIS validation for NEW POWER before moving
-    const newRightCyl = cleanAndFormat("cyl", currentData.newPowerRightCyl || "");
-    const newRightAxis = cleanAndFormat("axis", currentData.newPowerRightAxis || "");
-    if (newRightCyl !== "" && newRightAxis === "") {
-      return toast({
-        title: "Incomplete New Power",
-        description: "New Power Right Eye has CYL but no valid AXIS. Please enter AXIS before moving.",
-        variant: "destructive"
-      });
-    }
+    // Check validation of NEW POWER before moving
+    const newPowerPairs = [
+      { name: "New Power Right Eye", cyl: currentData.newPowerRightCyl, axis: currentData.newPowerRightAxis },
+      { name: "New Power Left Eye", cyl: currentData.newPowerLeftCyl, axis: currentData.newPowerLeftAxis },
+    ];
 
-    const newLeftCyl = cleanAndFormat("cyl", currentData.newPowerLeftCyl || "");
-    const newLeftAxis = cleanAndFormat("axis", currentData.newPowerLeftAxis || "");
-    if (newLeftCyl !== "" && newLeftAxis === "") {
-      return toast({
-        title: "Incomplete New Power",
-        description: "New Power Left Eye has CYL but no valid AXIS. Please enter AXIS before moving.",
-        variant: "destructive"
-      });
+    for (const p of newPowerPairs) {
+      const hasCyl = p.cyl && p.cyl.trim() !== "";
+      const hasAxis = p.axis && p.axis.trim() !== "";
+      if (hasCyl && !hasAxis) {
+        return toast({
+          title: "Incomplete New Power",
+          description: `${p.name} has CYL but missing AXIS. Please correct before moving.`,
+          variant: "destructive"
+        });
+      }
+      if (!hasCyl && hasAxis) {
+        return toast({
+          title: "Incomplete New Power",
+          description: `${p.name} has AXIS but missing CYL. Please correct before moving.`,
+          variant: "destructive"
+        });
+      }
+      if (hasCyl && hasAxis) {
+        const axisNum = parseInt(p.axis.replace(/\+/g, ""), 10);
+        if (isNaN(axisNum) || axisNum < 5 || axisNum > 180 || axisNum % 5 !== 0) {
+          return toast({
+            title: "Invalid AXIS in New Power",
+            description: `${p.name} AXIS must be between 5 and 180 in multiples of 5.`,
+            variant: "destructive"
+          });
+        }
+      }
     }
 
     const updateMap = {
       // Transfer to Old Power
       oldPowerRightSph: cleanAndFormat("sph", currentData.newPowerRightSph || ""),
-      oldPowerRightCyl: newRightCyl,
-      oldPowerRightAxis: newRightCyl === "" ? "" : newRightAxis,
+      oldPowerRightCyl: cleanAndFormat("cyl", currentData.newPowerRightCyl || ""),
+      oldPowerRightAxis: cleanAndFormat("axis", currentData.newPowerRightAxis || ""),
       oldPowerRightAdd: cleanAndFormat("add", currentData.newPowerRightAdd || ""),
 
       oldPowerLeftSph: cleanAndFormat("sph", currentData.newPowerLeftSph || ""),
-      oldPowerLeftCyl: newLeftCyl,
-      oldPowerLeftAxis: newLeftCyl === "" ? "" : newLeftAxis,
+      oldPowerLeftCyl: cleanAndFormat("cyl", currentData.newPowerLeftCyl || ""),
+      oldPowerLeftAxis: cleanAndFormat("axis", currentData.newPowerLeftAxis || ""),
       oldPowerLeftAdd: cleanAndFormat("add", currentData.newPowerLeftAdd || ""),
 
       // Clear New Power
@@ -245,7 +298,7 @@ export default function CustomersPage() {
       const opticalValidationError = validateOpticalPowers(newCustomer);
       if (opticalValidationError) {
         return toast({
-          title: "Incomplete Prescription",
+          title: "Validation Error",
           description: opticalValidationError,
           variant: "destructive"
         });
@@ -303,7 +356,7 @@ export default function CustomersPage() {
       const opticalValidationError = validateOpticalPowers(selectedCustomer);
       if (opticalValidationError) {
         return toast({
-          title: "Incomplete Prescription",
+          title: "Validation Error",
           description: opticalValidationError,
           variant: "destructive"
         });
@@ -387,7 +440,7 @@ export default function CustomersPage() {
   ) => {
     const updateObj: any = { [fieldKey]: val };
 
-    // If CYL is cleared, clear corresponding AXIS immediately
+    // Section 7.2: If CYL is cleared or becomes empty, immediately clear corresponding AXIS
     if (fieldKey.endsWith("Cyl")) {
       const cleanCyl = cleanAndFormat("cyl", val);
       if (cleanCyl === "") {
@@ -408,36 +461,18 @@ export default function CustomersPage() {
     if (!currentData) return;
 
     if (isOld) {
-      const rightCyl = cleanAndFormat("cyl", currentData.oldPowerRightCyl || "");
-      const rightAxis = cleanAndFormat("axis", currentData.oldPowerRightAxis || "");
       const updateMap: any = {
         oldPowerLeftAdd: currentData.oldPowerRightAdd || "",
       };
-      if (rightCyl !== "") {
-        updateMap.oldPowerLeftCyl = rightCyl;
-        updateMap.oldPowerLeftAxis = rightAxis;
-      } else {
-        updateMap.oldPowerLeftCyl = "";
-        updateMap.oldPowerLeftAxis = "";
-      }
       if (isEdit) {
         setSelectedCustomer((prev: any) => prev ? ({ ...prev, ...updateMap }) : null);
       } else {
         setNewCustomer((prev: any) => ({ ...prev, ...updateMap }));
       }
     } else {
-      const rightCyl = cleanAndFormat("cyl", currentData.newPowerRightCyl || "");
-      const rightAxis = cleanAndFormat("axis", currentData.newPowerRightAxis || "");
       const updateMap: any = {
         newPowerLeftAdd: currentData.newPowerRightAdd || "",
       };
-      if (rightCyl !== "") {
-        updateMap.newPowerLeftCyl = rightCyl;
-        updateMap.newPowerLeftAxis = rightAxis;
-      } else {
-        updateMap.newPowerLeftCyl = "";
-        updateMap.newPowerLeftAxis = "";
-      }
       if (isEdit) {
         setSelectedCustomer((prev: any) => prev ? ({ ...prev, ...updateMap }) : null);
       } else {
